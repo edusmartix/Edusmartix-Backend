@@ -1,12 +1,20 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaService as BasePrismaService } from 'nestjs-prisma';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
 
 @Injectable()
-export class PrismaService extends BasePrismaService implements OnModuleInit {
+export class PrismaService
+  extends PrismaClient
+  implements OnModuleInit, OnModuleDestroy
+{
+  constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    super();
+  }
   async onModuleInit() {
     await this.$connect();
   }
 
-  // You can add EduSmartix specific DB utilities here later
-  // For example: a method to clear all data for testing
+  async onModuleDestroy() {
+    await this.$disconnect();
+  }
 }

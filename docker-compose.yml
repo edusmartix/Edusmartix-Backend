@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  edusmartix-postgres: # This is the service name
+    image: postgres:14
+    container_name: edusmartix-postgres
+    restart: always
+    ports:
+      - '5432:5432'
+    env_file:
+      - .env
+    volumes:
+      - edusmartix-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  edusmartix-postgres-data:
+    name: edusmartix-postgres-db
