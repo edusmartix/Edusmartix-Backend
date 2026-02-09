@@ -11,3 +11,367 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+
+// ==========================
+// ENUMS
+// ==========================
+
+enum UserRole {
+  SCHOOL_OWNER
+  STAFF
+  PARENT
+  STUDENT
+}
+
+enum DomainType {
+  SCHOOL_PORTAL
+  STUDENTS
+  PARENTS
+}
+
+enum StaffRole {
+  ADMIN
+  TEACHER
+  ACCOUNTANT
+  PRINCIPAL
+}
+
+enum ParentRelationship {
+  FATHER
+  MOTHER
+  GUARDIAN
+}
+
+enum SessionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  REPEATED
+  WITHDRAWN
+}
+
+enum SubjectPriority {
+  REQUIRED
+  OPTIONAL
+  ELECTIVE
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+// ==========================
+// AUTHENTICATION & USERS
+// ==========================
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  phone         String?   @unique
+  passwordHash  String?   @map("password_hash")
+  role          UserRole
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  ownedGroups    SchoolGroup[]
+  ownedSchools   School[]
+  staffProfiles  StaffProfile[]
+  parentProfiles ParentProfile[]
+  studentProfile Student?
+
+  @@map("users")
+}
+
+// ==========================
+// SCHOOLS
+// ==========================
+
+model School {
+  id            Int      @id @default(autoincrement())
+  schoolGroupId Int?     @map("school_group_id")
+  name          String
+  slug          String   @unique
+  address       String?  @db.Text
+  schoolType    String?  @map("school_type")
+  ownerUserId   Int      @map("owner_user_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  schoolGroup      SchoolGroup?      @relation(fields: [schoolGroupId], references: [id])
+  owner            User              @relation(fields: [ownerUserId], references: [id])
+  staffProfiles    StaffProfile[]
+  parentProfiles   ParentProfile[]
+  students         Student[]
+  academicSessions AcademicSession[]
+  classLevels      ClassLevel[]
+  subjects         Subject[]
+  domains          SchoolDomain[]
+
+  @@map("schools")
+}
+
+// School Group model for school branches
+model SchoolGroup {
+  id          Int      @id @default(autoincrement())
+  name        String
+  ownerUserId Int      @map("owner_user_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  owner   User     @relation(fields: [ownerUserId], references: [id])
+  schools School[]
+
+  @@map("school_groups")
+}
+
+// The SchoolDomain Model
+model SchoolDomain {
+  id          String     @id @default(uuid())
+  schoolId    Int        @map("school_id")
+  domain      String     @unique // e.g., portal.greensprings.edu.ng
+  type        DomainType @default(SCHOOL_PORTAL)
+  isPrimary   Boolean    @default(false) @map("is_primary")
+  isVerified  Boolean    @default(false) @map("is_verified")
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Relation to the School model
+  school      School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  @@map("school_domains") // This ensures the DB table is named school_domains
+  @@index([schoolId])     // Faster lookups when querying domains by school
+}
+
+// ==========================
+// PROFILES
+// ==========================
+
+model StaffProfile {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  schoolId  Int       @map("school_id")
+  role      StaffRole
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  school School @relation(fields: [schoolId], references: [id])
+
+  @@unique([userId, schoolId])
+  @@map("staff_profiles")
+}
+
+model ParentProfile {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  schoolId  Int      @map("school_id")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user     User            @relation(fields: [userId], references: [id])
+  school   School          @relation(fields: [schoolId], references: [id])
+  students ParentStudent[]
+
+  @@unique([userId, schoolId])
+  @@map("parent_profiles")
+}
+
+model Student {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     @unique @map("user_id")
+  schoolId    Int      @map("school_id")
+  admissionNo String   @map("admission_no")
+  firstName   String   @map("first_name")
+  lastName    String   @map("last_name")
+  gender      String?
+  dateOfBirth DateTime? @map("date_of_birth") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User?           @relation(fields: [userId], references: [id])
+  school      School          @relation(fields: [schoolId], references: [id])
+  parents     ParentStudent[]
+  enrollments Enrollment[]
+
+  @@unique([schoolId, admissionNo])
+  @@map("students")
+}
+
+model ParentStudent {
+  parentProfileId Int                @map("parent_profile_id")
+  studentId       Int                @map("student_id")
+  relationship    ParentRelationship
+  createdAt       DateTime           @default(now()) @map("created_at")
+
+  parent  ParentProfile @relation(fields: [parentProfileId], references: [id])
+  student Student       @relation(fields: [studentId], references: [id])
+
+  @@id([parentProfileId, studentId])
+  @@map("parent_students")
+}
+
+// ==========================
+// ACADEMIC STRUCTURE
+// ==========================
+
+model AcademicSession {
+  id        Int           @id @default(autoincrement())
+  schoolId  Int           @map("school_id")
+  name      String 
+  isActive  Boolean       @default(false) @map("is_active")
+  status    SessionStatus
+  startsAt  DateTime?     @map("starts_at") @db.Date
+  endsAt    DateTime?     @map("ends_at") @db.Date
+  createdAt DateTime      @default(now()) @map("created_at")
+  updatedAt DateTime      @updatedAt @map("updated_at")
+
+  school             School              @relation(fields: [schoolId], references: [id])
+  terms              Term[]
+  enrollments        Enrollment[]
+  classSubjects      ClassSubject[]
+  attendanceSessions AttendanceSession[]
+
+  @@unique([schoolId, isActive])
+  @@map("academic_sessions")
+}
+
+model Term {
+  id                Int      @id @default(autoincrement())
+  academicSessionId Int      @map("academic_session_id")
+  name              String 
+  orderIndex        Int      @map("order_index")
+  isActive          Boolean  @default(false) @map("is_active")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  academicSession    AcademicSession     @relation(fields: [academicSessionId], references: [id])
+  attendanceSessions AttendanceSession[]
+
+  @@unique([academicSessionId, isActive])
+  @@map("terms")
+}
+
+model ClassLevel {
+  id         Int      @id @default(autoincrement())
+  schoolId   Int      @map("school_id")
+  name       String 
+  levelOrder Int      @map("level_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  school    School     @relation(fields: [schoolId], references: [id])
+  classArms ClassArm[]
+
+  @@unique([schoolId, levelOrder])
+  @@map("class_levels")
+}
+
+model ClassArm {
+  id           Int      @id @default(autoincrement())
+  classLevelId Int      @map("class_level_id")
+  name         String 
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  classLevel         ClassLevel          @relation(fields: [classLevelId], references: [id])
+  enrollments        Enrollment[]
+  classSubjects      ClassSubject[]
+  attendanceSessions AttendanceSession[]
+
+  @@unique([classLevelId, name])
+  @@map("class_arms")
+}
+
+model Enrollment {
+  id                Int              @id @default(autoincrement())
+  studentId         Int              @map("student_id")
+  classArmId        Int              @map("class_arm_id")
+  academicSessionId Int              @map("academic_session_id")
+  enrollmentStatus  EnrollmentStatus @map("enrollment_status")
+  createdAt         DateTime         @default(now()) @map("created_at")
+
+  student           Student            @relation(fields: [studentId], references: [id])
+  classArm          ClassArm           @relation(fields: [classArmId], references: [id])
+  academicSession   AcademicSession    @relation(fields: [academicSessionId], references: [id])
+  attendanceRecords AttendanceRecord[]
+
+  @@unique([studentId, academicSessionId])
+  @@map("enrollments")
+}
+
+// ==========================
+// SUBJECTS & ATTENDANCE
+// ==========================
+
+model Subject {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int      @map("school_id")
+  name      String
+  code      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  school        School         @relation(fields: [schoolId], references: [id])
+  classSubjects ClassSubject[]
+
+  @@unique([schoolId, name])
+  @@map("subjects")
+}
+
+model ClassSubject {
+  id                Int             @id @default(autoincrement())
+  subjectId         Int             @map("subject_id")
+  classArmId        Int             @map("class_arm_id")
+  academicSessionId Int             @map("academic_session_id")
+  priority          SubjectPriority
+  isExamSubject     Boolean         @default(true) @map("is_exam_subject")
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  subject         Subject         @relation(fields: [subjectId], references: [id])
+  classArm        ClassArm        @relation(fields: [classArmId], references: [id])
+  academicSession AcademicSession @relation(fields: [academicSessionId], references: [id])
+
+  @@unique([subjectId, classArmId, academicSessionId])
+  @@map("class_subjects")
+}
+
+model AttendanceSession {
+  id                Int      @id @default(autoincrement())
+  classArmId        Int      @map("class_arm_id")
+  academicSessionId Int      @map("academic_session_id")
+  termId            Int      @map("term_id")
+  attendanceDate    DateTime @map("attendance_date") @db.Date
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  classArm        ClassArm           @relation(fields: [classArmId], references: [id])
+  academicSession AcademicSession    @relation(fields: [academicSessionId], references: [id])
+  term            Term               @relation(fields: [termId], references: [id])
+  records         AttendanceRecord[]
+
+  @@unique([classArmId, academicSessionId, attendanceDate])
+  @@map("attendance_sessions")
+}
+
+model AttendanceRecord {
+  id                  Int              @id @default(autoincrement())
+  attendanceSessionId Int              @map("attendance_session_id")
+  enrollmentId        Int              @map("enrollment_id")
+  status              AttendanceStatus
+  createdAt           DateTime         @default(now()) @map("created_at")
+
+  attendanceSession AttendanceSession @relation(fields: [attendanceSessionId], references: [id])
+  enrollment        Enrollment        @relation(fields: [enrollmentId], references: [id])
+
+  @@unique([attendanceSessionId, enrollmentId])
+  @@map("attendance_records")
+}
