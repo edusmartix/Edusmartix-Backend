@@ -47,8 +47,6 @@ export class AuthGuard implements CanActivate {
             id: true,
             email: true,
             isActive: true,
-            isVerified: true,
-            tokenIssuedAt: true,
             role: true,
           },
         });
@@ -69,14 +67,14 @@ export class AuthGuard implements CanActivate {
       }
 
       // 6) Check for Token Revocation (Issued At check)
-      const tokenRevocationTime = Math.floor(
-        new Date(currentUser.tokenIssuedAt).getTime() / 1000,
-      );
-      if (decoded.iat && decoded.iat < tokenRevocationTime) {
-        throw new UnauthorizedException(
-          'Session invalidated. Please log in again.',
-        );
-      }
+      // const tokenRevocationTime = Math.floor(
+      //   new Date(currentUser.tokenIssuedAt).getTime() / 1000,
+      // );
+      // if (decoded.iat && decoded.iat < tokenRevocationTime) {
+      //   throw new UnauthorizedException(
+      //     'Session invalidated. Please log in again.',
+      //   );
+      // }
 
       // 7) GRANT ACCESS
       request['user'] = {

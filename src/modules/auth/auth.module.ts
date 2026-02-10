@@ -3,6 +3,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { MailModule } from '../mail/mail.module';
+import { UserRepository } from './user.repository';
+import { CacheService } from 'src/infrastructure/redis/cache.service';
+import { PrismaService } from 'src/infrastructure/prisma/prisma.service';
 
 @Global() // Makes JwtService available application-wide
 @Module({
@@ -13,7 +16,7 @@ import { MailModule } from '../mail/mail.module';
     }),
     MailModule,
   ],
-  providers: [AuthService],
+  providers: [AuthService, UserRepository, CacheService, PrismaService],
   controllers: [AuthController],
   exports: [AuthService, JwtModule],
 })

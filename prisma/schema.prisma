@@ -72,14 +72,17 @@ enum AttendanceStatus {
 // ==========================
 
 model User {
-  id            Int       @id @default(autoincrement())
-  email         String    @unique
-  phone         String?   @unique
-  passwordHash  String?   @map("password_hash")
-  role          UserRole
-  isActive      Boolean   @default(true) @map("is_active")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  firstName    String   @map("first_name")
+  lastName     String   @map("last_name")
+  otherName    String?  @map("other_name")
+  phone        String?  @unique
+  passwordHash String?  @map("password_hash")
+  role         UserRole
+  isActive     Boolean  @default(false) @map("is_active") // Default false for OTP flow
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   ownedGroups    SchoolGroup[]
   ownedSchools   School[]
