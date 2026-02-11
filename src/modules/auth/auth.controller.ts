@@ -20,7 +20,7 @@ export class AuthController {
     return this.authService.signup(dto);
   }
 
-  @Post('resend-otp')
+  @Post('send-otp')
   async sendOtp(@Body('userId', ParseIntPipe) userId: number) {
     return await this.authService.sendOtp(userId);
   }

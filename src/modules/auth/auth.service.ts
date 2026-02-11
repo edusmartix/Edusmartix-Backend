@@ -95,7 +95,7 @@ export class AuthService {
     await this.cacheService.invalidateData(`otp:${userId}`);
 
     return {
-      message: 'Account activated successfully. You can now log in.',
+      message: 'Account activated successfully.',
     };
   }
 }
