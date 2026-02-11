@@ -2,6 +2,7 @@ import {
   Injectable,
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import { MailService } from '../mail/mail.service';
 import { SignupDto } from './dto/signup.dto';
@@ -52,6 +53,30 @@ export class AuthService {
       message: 'Registration successful. Please check your email for the OTP.',
       userId: user.id,
     };
+  }
+
+  async sendOtp(userId: number) {
+    // 1. Verify user exists
+    const user = await this.userRepo.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 2. Don't resend if already active
+    if (user.isActive) {
+      throw new BadRequestException('Account is already activated');
+    }
+
+    // 3. Generate new OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 4. Overwrite existing OTP in Redis (resets the 10-minute timer)
+    await this.cacheService.cacheData(`otp:${user.id}`, otp, 600);
+
+    // 5. Send Email
+    await this.mailService.sendOtpEmail(user.email, user, otp);
+
+    return { message: 'A new OTP has been sent to your email.' };
   }
 
   async verifyOtp(userId: number, otp: string) {

@@ -6,6 +6,7 @@ import {
   // Patch,
   // Param,
   // Delete,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
@@ -17,6 +18,11 @@ export class AuthController {
   @Post('signup')
   signup(@Body() dto: SignupDto) {
     return this.authService.signup(dto);
+  }
+
+  @Post('resend-otp')
+  async sendOtp(@Body('userId', ParseIntPipe) userId: number) {
+    return await this.authService.sendOtp(userId);
   }
 
   @Post('verify-otp')
