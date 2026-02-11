@@ -1,6 +1,6 @@
 import { Processor } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { BaseProcessor } from '../../common/processors/base.processor';
+import { BaseProcessor } from '../common/processors/base.processor';
 import { MailProviderService } from './mail-provider.service';
 
 @Processor('email-queue')

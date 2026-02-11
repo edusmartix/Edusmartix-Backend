@@ -70,6 +70,30 @@ $ mau deploy
 
 With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
 
+## System Architecture
+  src/
+  ├── core/                      # Global infrastructure (No business logic)
+  │    ├── database/             # PrismaService
+  │    ├── redis/                # CacheService, Redis providers
+  │    ├── mail/                 # MailService
+  │    └── common/               # Guards, Decorators, Filters, Middlewares
+  │
+  ├── tenant/                    # Domain resolution logic (Multi-tenancy)
+  │    ├── tenant.module.ts
+  │    ├── tenant.middleware.ts  # Injects schoolId into requests
+  │    └── tenant.service.ts
+  │
+  ├── modules/                   # Business Domains
+  │    ├── users/                # Auth, Roles, Profiles
+  │    ├── school/               # School creation, Settings, Branding
+  │    ├── students/             # Student specific logic & Parent linking
+  │    ├── academic/             # Sessions, Terms, Classes, Subjects
+  │    ├── attendance/           # Daily/Subject attendance
+  │    └── billing/              # Invoices, Payments, SaaS Subscriptions
+  │
+  ├── app.module.ts              # Root module importing all above
+  └── main.ts
+  
 ## Resources
 
 Check out a few resources that may come in handy when working with NestJS:
