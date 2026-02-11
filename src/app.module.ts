@@ -2,11 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { PrismaModule } from './infrastructure/prisma/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
-import { MailModule } from './modules/mail/mail.module';
-import { RedisModule } from './infrastructure/redis/redis.module';
 import { CommonModule } from './common/common.module';
+import { CoreModule } from './core/core.module';
 
 @Module({
   imports: [
@@ -15,10 +13,8 @@ import { CommonModule } from './common/common.module';
       envFilePath: `.env`,
       expandVariables: true,
     }),
-    PrismaModule,
+    CoreModule,
     AuthModule,
-    MailModule,
-    RedisModule,
     CommonModule,
   ],
   controllers: [AppController],

@@ -105,6 +105,12 @@ model School {
   address       String?  @db.Text
   schoolType    String?  @map("school_type")
   ownerUserId   Int      @map("owner_user_id")
+  
+  // Branding
+  logoUrl       String?  @map("logo_url")
+  primaryColor  String?  @map("primary_color")
+  secondaryColor String? @map("secondary_color")
+
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
@@ -244,7 +250,7 @@ model AcademicSession {
   classSubjects      ClassSubject[]
   attendanceSessions AttendanceSession[]
 
-  @@unique([schoolId, isActive])
+  // @@unique([schoolId, isActive])
   @@map("academic_sessions")
 }
 
