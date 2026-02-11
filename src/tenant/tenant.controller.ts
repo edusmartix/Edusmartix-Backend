@@ -28,4 +28,10 @@ export class TenantController {
       },
     };
   }
+
+  @Get('check-availability')
+  async checkAvailability(@Query('domain') domain: string) {
+    const isAvailable = await this.tenantService.isDomainAvailable(domain);
+    return { available: isAvailable };
+  }
 }

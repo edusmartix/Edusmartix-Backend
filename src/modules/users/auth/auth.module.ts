@@ -2,8 +2,7 @@ import { Module, Global } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { MailModule } from '../../core/mail/mail.module';
-import { UserRepository } from './user.repository';
+import { MailModule } from '../../../core/mail/mail.module';
 import { CacheService } from 'src/core/redis/cache.service';
 import { PrismaService } from 'src/core/prisma/prisma.service';
 
@@ -16,7 +15,7 @@ import { PrismaService } from 'src/core/prisma/prisma.service';
     }),
     MailModule,
   ],
-  providers: [AuthService, UserRepository, CacheService, PrismaService],
+  providers: [AuthService, CacheService, PrismaService],
   controllers: [AuthController],
   exports: [AuthService, JwtModule],
 })

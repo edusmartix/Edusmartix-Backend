@@ -2,12 +2,16 @@ import { NestModule, MiddlewareConsumer, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AuthModule } from './modules/auth/auth.module';
 import { CommonModule } from './core/common/common.module';
 import { CoreModule } from './core/core.module';
 import { TenantModule } from './tenant/tenant.module';
 import { TenantMiddleware } from './tenant/tenant.middleware';
 import { UsersModule } from './modules/users/users.module';
+import { SchoolModule } from './modules/school/school.module';
+import { AcademicModule } from './modules/academic/academic.module';
+import { StudentsModule } from './modules/students/students.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -17,10 +21,14 @@ import { UsersModule } from './modules/users/users.module';
       expandVariables: true,
     }),
     CoreModule,
-    AuthModule,
     CommonModule,
     TenantModule,
     UsersModule,
+    SchoolModule,
+    AcademicModule,
+    StudentsModule,
+    AttendanceModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

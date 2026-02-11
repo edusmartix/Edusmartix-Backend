@@ -4,10 +4,10 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { MailService } from '../../core/mail/mail.service';
+import { MailService } from '../../../core/mail/mail.service';
 import { SignupDto } from './dto/signup.dto';
-import { UserRepository } from './user.repository';
-import { CacheService } from '../../core/redis/cache.service';
+import { UserRepository } from '../user.repository';
+import { CacheService } from '../../../core/redis/cache.service';
 import * as bcrypt from 'bcryptjs';
 import { UserRole } from '@prisma/client';
 
