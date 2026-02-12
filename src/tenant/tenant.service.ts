@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../core/prisma/prisma.service';
 import { CacheService } from '../core/redis/cache.service';
+import { TenantRepository } from './tenant.repository';
 
 @Injectable()
 export class TenantService {
   constructor(
+    private readonly repo: TenantRepository,
     private readonly prisma: PrismaService,
     private readonly cache: CacheService,
   ) {}
@@ -49,5 +51,21 @@ export class TenantService {
       where: { domain: domain.toLowerCase().trim() },
     });
     return count === 0;
+  }
+
+  async checkSlugAvailability(
+    slug: string,
+    baseSuffix: string = '.edusmartix.com',
+  ) {
+    const sanitizedSlug = slug.toLowerCase().trim();
+
+    // We check the primary one: portal.slug.edusmartix.com
+    const fullDomain = `portal.${sanitizedSlug}${baseSuffix}`;
+    const taken = await this.repo.exists(fullDomain);
+
+    return {
+      available: !taken,
+      suggestedSlug: sanitizedSlug,
+    };
   }
 }

@@ -34,4 +34,12 @@ export class TenantController {
     const isAvailable = await this.tenantService.isDomainAvailable(domain);
     return { available: isAvailable };
   }
+
+  @Get('check-slug')
+  async checkSlug(
+    @Query('slug') slug: string,
+    @Query('suffix') suffix?: string, // Optional: defaults to .edusmartix.com
+  ) {
+    return await this.tenantService.checkSlugAvailability(slug, suffix);
+  }
 }

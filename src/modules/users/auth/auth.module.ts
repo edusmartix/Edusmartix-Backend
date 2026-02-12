@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { MailModule } from '../../../core/mail/mail.module';
 import { CacheService } from 'src/core/redis/cache.service';
 import { PrismaService } from 'src/core/prisma/prisma.service';
+import { UsersModule } from '../users.module';
 
 @Global() // Makes JwtService available application-wide
 @Module({
@@ -14,6 +15,7 @@ import { PrismaService } from 'src/core/prisma/prisma.service';
       signOptions: { expiresIn: '1d' },
     }),
     MailModule,
+    UsersModule,
   ],
   providers: [AuthService, CacheService, PrismaService],
   controllers: [AuthController],

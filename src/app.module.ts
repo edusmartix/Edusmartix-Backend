@@ -12,6 +12,7 @@ import { AcademicModule } from './modules/academic/academic.module';
 import { StudentsModule } from './modules/students/students.module';
 import { AttendanceModule } from './modules/attendance/attendance.module';
 import { BillingModule } from './modules/billing/billing.module';
+import { AuthModule } from './modules/users/auth/auth.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BillingModule } from './modules/billing/billing.module';
     CommonModule,
     TenantModule,
     UsersModule,
+    AuthModule,
     SchoolModule,
     AcademicModule,
     StudentsModule,
