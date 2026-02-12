@@ -1,4 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  Headers,
+  BadRequestException,
+} from '@nestjs/common';
 import { TenantService } from './tenant.service';
 
 @Controller('tenant')
@@ -10,7 +16,11 @@ export class TenantController {
    * based on the current hostname.
    */
   @Get('identify')
-  async identify(@Query('domain') domain: string) {
+  async identify(@Headers('x-school-domain') domain: string) {
+    // Explicitly check if the frontend sent the header
+    if (!domain) {
+      throw new BadRequestException('x-school-domain header is missing');
+    }
     // We reuse the service logic which handles Redis caching
     const tenant = await this.tenantService.getTenantByDomain(domain);
 
@@ -31,6 +41,9 @@ export class TenantController {
 
   @Get('check-availability')
   async checkAvailability(@Query('domain') domain: string) {
+    if (!domain) {
+      throw new BadRequestException('Domain is missing in query');
+    }
     const isAvailable = await this.tenantService.isDomainAvailable(domain);
     return { available: isAvailable };
   }
@@ -40,6 +53,9 @@ export class TenantController {
     @Query('slug') slug: string,
     @Query('suffix') suffix?: string, // Optional: defaults to .edusmartix.com
   ) {
+    if (!slug) {
+      throw new BadRequestException('slug is missing in query');
+    }
     return await this.tenantService.checkSlugAvailability(slug, suffix);
   }
 }
