@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../core/prisma/prisma.service';
 import { DomainType } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class TenantRepository {
@@ -25,8 +26,12 @@ export class TenantRepository {
   async createMultiple(
     schoolId: number,
     domains: { domain: string; type: DomainType }[],
+    tx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.schoolDomain.createMany({
+    // If tx is provided, use it. Otherwise, use the standard this.prisma
+    const client = tx || this.prisma;
+
+    return client.schoolDomain.createMany({
       data: domains.map((d) => ({
         schoolId,
         domain: d.domain.toLowerCase(),
