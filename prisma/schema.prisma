@@ -94,6 +94,17 @@ model User {
 }
 
 // ==========================
+// MEDIA TRACKING
+// ==========================
+model Media {
+  id        String   @id @default(uuid())
+  url       String
+  fileKey   String   // The R2 path (e.g., "logos/123.webp")
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// ==========================
 // SCHOOLS
 // ==========================
 
