@@ -26,6 +26,7 @@ export class R2Service {
         secretAccessKey:
           this.configService.get<string>('R2_SECRET_ACCESS_KEY') || '',
       },
+      forcePathStyle: true,
     });
   }
 
