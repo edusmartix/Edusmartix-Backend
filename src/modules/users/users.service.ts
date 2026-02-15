@@ -4,6 +4,8 @@ import { CreateStaffDto } from './dto/create-staff.dto';
 import { CreateStudentParentDto } from './dto/create-student-parent.dto';
 import { UserRepository } from './user.repository';
 import { UserRole } from '@prisma/client';
+import * as bcrypt from 'bcryptjs';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class UserService {
