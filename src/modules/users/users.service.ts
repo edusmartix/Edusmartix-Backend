@@ -60,13 +60,13 @@ export class UsersService {
     const studentHash = await bcrypt.hash(studentTempPass, 10);
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Parent Identity & Profile
+      // 1. PARENT SIDE
       const parentUser = await this.userRepo.upsertUser(
         {
           email: dto.parentEmail,
           firstName: dto.parentFirstName,
           lastName: dto.parentLastName,
-          role: UserRole.PARENT,
+          role: UserRole.PARENT, // Global role is just USER
         },
         tx,
       );
@@ -82,15 +82,27 @@ export class UsersService {
         tx,
       );
 
-      // 2. Student Record (with local password)
+      // 2. STUDENT SIDE (New: Create the User Identity first)
+      // If students don't have emails, you can use: admissionNo@schoolslug.com
+      const studentUser = await this.userRepo.upsertUser(
+        {
+          email: dto.studentEmail || `${dto.admissionNo}@edu.com`,
+          firstName: dto.studentFirstName,
+          lastName: dto.studentLastName,
+          role: UserRole.STUDENT,
+        },
+        tx,
+      );
+
       const student = await this.userRepo.createStudent(
         {
+          userId: studentUser.id, // Linked to the User table!
           schoolId,
           firstName: dto.studentFirstName,
           lastName: dto.studentLastName,
           admissionNo: dto.admissionNo,
           gender: dto.gender,
-          passwordHash: studentHash, // Student can login to their portal
+          passwordHash: studentHash,
         },
         tx,
       );
@@ -103,14 +115,16 @@ export class UsersService {
         tx,
       );
 
-      console.log(
-        `[AUTH] Parent: ${dto.parentEmail} | Pass: ${parentTempPass}`,
-      );
-      console.log(
-        `[AUTH] Student: ${dto.admissionNo} | Pass: ${studentTempPass}`,
-      );
-
-      return { studentId: student.id, parentId: parentUser.id };
+      return {
+        studentId: student.id,
+        parentId: parentUser.id,
+        studentUser: studentUser.email,
+        parentUser: parentUser.email,
+        credentials: {
+          student: { email: studentUser.email, password: studentTempPass },
+          parent: { email: parentUser.email, password: parentTempPass },
+        },
+      };
     });
   }
 }

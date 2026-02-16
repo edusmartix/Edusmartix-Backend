@@ -6,31 +6,28 @@ import { Prisma, User as PrismaUser, ParentRelationship } from '@prisma/client';
 export class UserRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  // Use PrismaUser here
-  async createUser(data: Prisma.UserCreateInput): Promise<PrismaUser> {
-    return await this.prisma.user.create({ data });
+  // --- GLOBAL USER METHODS ---
+
+  async createUser(
+    data: Prisma.UserCreateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<PrismaUser> {
+    return await (tx || this.prisma).user.create({ data });
   }
 
-  // Use PrismaUser here
-  // async findByEmail(email: string): Promise<PrismaUser | null> {
-  //   return await this.prisma.user.findUnique({ where: { email } });
-  // }
-
-  // Use PrismaUser here
   async findById(id: number): Promise<PrismaUser | null> {
     return await this.prisma.user.findUnique({ where: { id } });
   }
 
-  // Use PrismaUser here
+  async findByEmail(email: string, tx?: Prisma.TransactionClient) {
+    return (tx || this.prisma).user.findUnique({ where: { email } });
+  }
+
   async updateStatus(id: number, isActive: boolean): Promise<PrismaUser> {
     return await this.prisma.user.update({
       where: { id },
       data: { isActive },
     });
-  }
-
-  async findByEmail(email: string, tx?: Prisma.TransactionClient) {
-    return (tx || this.prisma).user.findUnique({ where: { email } });
   }
 
   async upsertUser(
@@ -39,10 +36,12 @@ export class UserRepository {
   ) {
     return (tx || this.prisma).user.upsert({
       where: { email: data.email },
-      update: {}, // We keep the first-ever name as the global identity
+      update: {}, // Keep existing identity if they already exist globally
       create: data,
     });
   }
+
+  // --- STAFF METHODS ---
 
   async createStaffProfile(
     data: Prisma.StaffProfileUncheckedCreateInput,
@@ -50,6 +49,8 @@ export class UserRepository {
   ) {
     return (tx || this.prisma).staffProfile.create({ data });
   }
+
+  // --- PARENT METHODS ---
 
   async upsertParentProfile(
     data: Prisma.ParentProfileUncheckedCreateInput,
@@ -68,13 +69,6 @@ export class UserRepository {
     });
   }
 
-  async createStudent(
-    data: Prisma.StudentUncheckedCreateInput,
-    tx?: Prisma.TransactionClient,
-  ) {
-    return (tx || this.prisma).student.create({ data });
-  }
-
   async linkParentStudent(
     parentProfileId: number,
     studentId: number,
@@ -83,6 +77,52 @@ export class UserRepository {
   ) {
     return (tx || this.prisma).parentStudent.create({
       data: { parentProfileId, studentId, relationship },
+    });
+  }
+
+  // --- STUDENT METHODS ---
+
+  async createStudent(
+    data: Prisma.StudentUncheckedCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return (tx || this.prisma).student.create({ data });
+  }
+
+  /**
+   * Helper for Student Portal login.
+   * Finds the student by admission number + school context
+   */
+  async findStudentByAdmission(schoolId: number, admissionNo: string) {
+    return this.prisma.student.findUnique({
+      where: {
+        schoolId_admissionNo: { schoolId, admissionNo },
+      },
+      include: { user: true }, // Include global user to check email/id
+    });
+  }
+
+  /**
+   * Allows re-registering a student who might have been deleted/archived
+   */
+  async upsertStudent(
+    data: Prisma.StudentUncheckedCreateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return (tx || this.prisma).student.upsert({
+      where: {
+        schoolId_admissionNo: {
+          schoolId: data.schoolId,
+          admissionNo: data.admissionNo,
+        },
+      },
+      update: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        passwordHash: data.passwordHash,
+        isActive: data.isActive ?? true,
+      },
+      create: data,
     });
   }
 }

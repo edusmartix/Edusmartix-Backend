@@ -193,6 +193,7 @@ export class AuthService {
       sub: user.id,
       schoolId,
       role: user.role,
+      domainType: domainType,
       profileRole: loginRole,
       type: 'TENANT',
     };

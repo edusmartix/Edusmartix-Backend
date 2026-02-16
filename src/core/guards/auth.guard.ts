@@ -36,7 +36,7 @@ export class AuthGuard implements CanActivate {
 
       // 2) DOMAIN LOCK: Ensure the token type matches the domain type
       // Prevents a student token from being used on the staff portal
-      if (currentSchoolId && decoded.profileType !== domainType) {
+      if (currentSchoolId && decoded.domainType !== domainType) {
         throw new UnauthorizedException(
           'Incorrect portal for this account type.',
         );

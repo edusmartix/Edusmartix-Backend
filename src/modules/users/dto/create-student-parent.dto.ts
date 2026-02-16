@@ -10,6 +10,9 @@ import { ParentRelationship } from '@prisma/client';
 
 export class CreateStudentParentDto {
   // Student Info
+  @IsEmail()
+  studentEmail: string;
+
   @IsString()
   @IsNotEmpty()
   studentFirstName: string;
