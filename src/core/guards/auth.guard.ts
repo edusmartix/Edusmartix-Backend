@@ -5,8 +5,8 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '../../../../core/prisma/prisma.service';
-import { CacheService } from '../../../../core/redis/cache.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../redis/cache.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {

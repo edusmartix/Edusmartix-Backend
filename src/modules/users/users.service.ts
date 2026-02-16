@@ -8,7 +8,7 @@ import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
 @Injectable()
-export class UserService {
+export class UsersService {
   constructor(
     private prisma: PrismaService,
     private userRepo: UserRepository,

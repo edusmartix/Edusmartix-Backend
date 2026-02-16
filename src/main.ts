@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { VersioningType } from '@nestjs/common';
+import { VersioningType, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -7,6 +7,15 @@ async function bootstrap() {
 
   // 1. Set a Global Prefix (e.g., 'api')
   app.setGlobalPrefix('api');
+
+  // ADD THIS LINE
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+      forbidNonWhitelisted: true,
+    }),
+  );
 
   // 2. Enable Versioning (e.g., 'v1')
   app.enableVersioning({
