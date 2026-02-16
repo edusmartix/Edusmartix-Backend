@@ -19,7 +19,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const currentSchoolId = request['schoolId'];
-    const domainType = request['domainType']; // Added: From TenantMiddleware
+    const domainType = request['domainType'];
 
     const token = this.extractToken(request);
     if (!token) throw new UnauthorizedException('You are not logged in!');
@@ -100,19 +100,30 @@ export class AuthGuard implements CanActivate {
           domainType === 'SCHOOL_PORTAL' ? { where: { schoolId } } : false,
         parentProfiles:
           domainType === 'PARENTS' ? { where: { schoolId } } : false,
-        studentProfiles:
+        studentProfile:
           domainType === 'STUDENTS' ? { where: { schoolId } } : false,
       },
     });
 
     if (!user) return null;
 
-    // Pick the specific profile
-    const profile =
-      (domainType === 'SCHOOL_PORTAL' ? user.staffProfiles?.[0] : null) ||
-      (domainType === 'PARENTS' ? user.parentProfiles?.[0] : null) ||
-      (domainType === 'STUDENTS' ? user.studentProfiles?.[0] : null);
+    // 3. Resolve Profile using Switch Statement
+    let profile: any = null;
 
+    // Pick the specific profile
+    switch (domainType) {
+      case 'SCHOOL_PORTAL':
+        profile = user.staffProfiles?.[0];
+        break;
+      case 'PARENTS':
+        profile = user.parentProfiles?.[0];
+        break;
+      case 'STUDENTS':
+        profile = user.studentProfile;
+        break;
+      default:
+        return null;
+    }
     if (!profile) return null;
 
     return {
@@ -125,7 +136,7 @@ export class AuthGuard implements CanActivate {
       schoolId: schoolId,
       profileId: profile.id,
       profileType: domainType,
-      staffRole: domainType === 'SCHOOL_PORTAL' ? (profile as any).role : null,
+      staffRole: domainType === 'SCHOOL_PORTAL' ? profile.role : null,
     };
   }
 
