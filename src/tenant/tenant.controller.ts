@@ -28,7 +28,7 @@ export class TenantController {
       success: true,
       data: {
         schoolId: tenant.schoolId,
-        portalType: tenant.portalType,
+        domainType: tenant.domainType,
         branding: {
           name: tenant.branding.name,
           logoUrl: tenant.branding.logoUrl,

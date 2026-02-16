@@ -18,7 +18,8 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const currentSchoolId = request['schoolId']; // From your TenantMiddleware
+    const currentSchoolId = request['schoolId'];
+    const domainType = request['domainType']; // Added: From TenantMiddleware
 
     const token = this.extractToken(request);
     if (!token) throw new UnauthorizedException('You are not logged in!');
@@ -28,22 +29,29 @@ export class AuthGuard implements CanActivate {
         secret: process.env.JWT_SECRET,
       });
 
-      // 1) TENANT LOCK: Is this token for the school being accessed?
-      // School Owners logging into the main dashboard (no schoolId) might skip this
+      // 1) TENANT LOCK
       if (currentSchoolId && decoded.schoolId !== Number(currentSchoolId)) {
         throw new UnauthorizedException('Invalid session for this school.');
       }
 
-      // 2) CACHE CHECK (Tenant-Specific Key)
-      const cacheKey = `user:${decoded.sub}:school:${decoded.schoolId || 'global'}`;
+      // 2) DOMAIN LOCK: Ensure the token type matches the domain type
+      // Prevents a student token from being used on the staff portal
+      if (currentSchoolId && decoded.profileType !== domainType) {
+        throw new UnauthorizedException(
+          'Incorrect portal for this account type.',
+        );
+      }
+
+      // 3) CACHE CHECK (Keys are now tenant + domain specific)
+      const cacheKey = `user:${decoded.sub}:school:${decoded.schoolId || 'global'}:type:${domainType || 'global'}`;
       let sessionUser = await this.cache.getCachedUser(cacheKey);
 
       if (!sessionUser) {
-        // 3) DB FETCH: Get the User AND their specific Profile for this school
-        // We use a raw query or findFirst to check across profile types
+        // 4) DB FETCH
         sessionUser = await this.fetchUserWithProfile(
           decoded.sub,
           decoded.schoolId,
+          domainType, // Pass domainType to be specific
         );
 
         if (sessionUser) {
@@ -52,13 +60,14 @@ export class AuthGuard implements CanActivate {
       }
 
       if (!sessionUser)
-        throw new UnauthorizedException('Account not found in this school.');
-      if (!sessionUser.isActive)
-        throw new UnauthorizedException(
-          'Your access to this school has been deactivated.',
-        );
+        throw new UnauthorizedException('Access denied for this portal.');
 
-      // 4) ATTACH TO REQUEST
+      // Profile-level isActive check
+      if (sessionUser.isActive === false) {
+        throw new UnauthorizedException('Your access has been deactivated.');
+      }
+
+      // 5) ATTACH TO REQUEST
       request['user'] = {
         ...sessionUser,
         iat: decoded.iat,
@@ -71,8 +80,11 @@ export class AuthGuard implements CanActivate {
     }
   }
 
-  private async fetchUserWithProfile(userId: number, schoolId: number) {
-    // If it's a school owner in global mode (no schoolId in token)
+  private async fetchUserWithProfile(
+    userId: number,
+    schoolId: number,
+    domainType: string,
+  ) {
     if (!schoolId) {
       return await this.prisma.user.findUnique({
         where: { id: userId },
@@ -80,37 +92,40 @@ export class AuthGuard implements CanActivate {
       });
     }
 
-    // Otherwise, fetch the user with their school-specific profile overrides
+    // Explicitly fetch only what is needed based on the domainType
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        staffProfiles: { where: { schoolId: Number(schoolId) } },
-        parentProfiles: { where: { schoolId: Number(schoolId) } },
-        studentProfile: { where: { schoolId: Number(schoolId) } },
+        staffProfiles:
+          domainType === 'SCHOOL_PORTAL' ? { where: { schoolId } } : false,
+        parentProfiles:
+          domainType === 'PARENTS' ? { where: { schoolId } } : false,
+        studentProfiles:
+          domainType === 'STUDENTS' ? { where: { schoolId } } : false,
       },
     });
 
     if (!user) return null;
 
-    // Resolve which profile they are using in this school
-    const staff = user.staffProfiles[0];
-    const parent = user.parentProfiles[0];
-    const student = user.studentProfile;
+    // Pick the specific profile
+    const profile =
+      (domainType === 'SCHOOL_PORTAL' ? user.staffProfiles?.[0] : null) ||
+      (domainType === 'PARENTS' ? user.parentProfiles?.[0] : null) ||
+      (domainType === 'STUDENTS' ? user.studentProfiles?.[0] : null);
 
-    const activeProfile = staff || parent || student;
-    if (!activeProfile) return null;
+    if (!profile) return null;
 
     return {
       id: user.id,
       email: user.email,
-      role: user.role, // Global Role (SCHOOL_OWNER, STAFF, etc.)
-      isActive: activeProfile.isActive ?? true, // Profile-level active status
-      firstName: activeProfile.firstName, // Profile Override Name!
-      lastName: activeProfile.lastName, // Profile Override Name!
+      globalRole: user.role,
+      isActive: profile.isActive ?? true,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
       schoolId: schoolId,
-      profileId: activeProfile.id,
-      // If it's staff, we might want their StaffRole (ADMIN, TEACHER)
-      staffRole: staff ? staff.role : null,
+      profileId: profile.id,
+      profileType: domainType,
+      staffRole: domainType === 'SCHOOL_PORTAL' ? (profile as any).role : null,
     };
   }
 
@@ -119,91 +134,3 @@ export class AuthGuard implements CanActivate {
     return type === 'Bearer' ? token : request.cookies?.accessToken;
   }
 }
-
-// @Injectable()
-// export class AuthGuard implements CanActivate {
-//   constructor(
-//     private jwtService: JwtService,
-//     private prisma: PrismaService,
-//     private cache: CacheService,
-//   ) {}
-
-//   async canActivate(context: ExecutionContext): Promise<boolean> {
-//     const request = context.switchToHttp().getRequest();
-
-//     // 1) Get token from Header or Cookies
-//     const token = this.extractToken(request);
-//     if (!token) {
-//       throw new UnauthorizedException('You are not logged in!');
-//     }
-
-//     try {
-//       // 2) Verify token
-//       const decoded = await this.jwtService.verifyAsync(token, {
-//         secret: process.env.JWT_SECRET,
-//       });
-
-//       // 3) CHECK REDIS CACHE FIRST 🚀
-//       let currentUser = await this.cache.getCachedUser(decoded.sub);
-
-//       if (currentUser) {
-//         // Handle Date conversion if JSON.parse lost the type
-//         if (typeof currentUser.tokenIssuedAt === 'string') {
-//           currentUser.tokenIssuedAt = new Date(currentUser.tokenIssuedAt);
-//         }
-//       } else {
-//         // 4) CACHE MISS -> Fetch from Database
-//         currentUser = await this.prisma.user.findUnique({
-//           where: { id: decoded.sub },
-//           select: {
-//             id: true,
-//             email: true,
-//             isActive: true,
-//             role: true,
-//           },
-//         });
-
-//         if (currentUser) {
-//           // Store in Redis via our helper
-//           await this.cache.cacheUser(decoded.sub, currentUser);
-//         }
-//       }
-
-//       if (!currentUser) {
-//         throw new UnauthorizedException('The user no longer exists.');
-//       }
-
-//       // 5) Check for Deactivation
-//       if (!currentUser.isActive) {
-//         throw new UnauthorizedException('Your account has been deactivated.');
-//       }
-
-//       // 6) Check for Token Revocation (Issued At check)
-//       // const tokenRevocationTime = Math.floor(
-//       //   new Date(currentUser.tokenIssuedAt).getTime() / 1000,
-//       // );
-//       // if (decoded.iat && decoded.iat < tokenRevocationTime) {
-//       //   throw new UnauthorizedException(
-//       //     'Session invalidated. Please log in again.',
-//       //   );
-//       // }
-
-//       // 7) GRANT ACCESS
-//       request['user'] = {
-//         ...currentUser,
-//         iat: decoded.iat,
-//         exp: decoded.exp,
-//       };
-
-//       return true;
-//     } catch (err) {
-//       throw new UnauthorizedException(err.message || 'Authentication failed');
-//     }
-//   }
-
-//   private extractToken(request: any): string | undefined {
-//     const [type, token] = request.headers.authorization?.split(' ') ?? [];
-//     if (type === 'Bearer') return token;
-//     return request.cookies?.accessToken;
-//   }
-// }

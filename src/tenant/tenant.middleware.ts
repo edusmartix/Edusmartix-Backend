@@ -13,7 +13,7 @@ export class TenantMiddleware implements NestMiddleware {
       try {
         const tenant = await this.tenantService.getTenantByDomain(domain);
         req['schoolId'] = tenant.schoolId;
-        req['portalType'] = tenant.portalType;
+        req['domainType'] = tenant.domainType;
       } catch (e) {
         console.log(
           `Tenant lookup failed for domain: ${domain} - ${e.message}`,

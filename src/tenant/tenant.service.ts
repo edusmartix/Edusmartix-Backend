@@ -14,11 +14,11 @@ export class TenantService {
   async getTenantByDomain(domain: string) {
     const cacheKey = `tenant:${domain}`;
 
-    // Check cache first
+    // 1. Check cache first
     const cached = await this.cache.getCachedData<any>(cacheKey);
     if (cached) return cached;
 
-    // Query DB with Branding
+    // 2. Query DB with Branding
     const record = await this.prisma.schoolDomain.findUnique({
       where: { domain },
       include: {
@@ -35,14 +35,20 @@ export class TenantService {
 
     if (!record) throw new NotFoundException('Domain not registered');
 
+    // 3. Map to our standard Tenant object
     const tenantData = {
       schoolId: record.schoolId,
-      portalType: record.type,
-      branding: record.school,
+      domainType: record.type,
+      branding: {
+        name: record.school.name,
+        logoUrl: record.school.logoUrl,
+        primaryColor: record.school.primaryColor,
+      },
     };
 
-    // Cache for 1 hour
+    // 4. Cache for 1 hour
     await this.cache.cacheData(cacheKey, tenantData, 3600);
+
     return tenantData;
   }
 
