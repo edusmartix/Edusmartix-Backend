@@ -235,7 +235,10 @@ model Student {
   parents     ParentStudent[]
   enrollments Enrollment[]
 
-  @@unique([schoolId, admissionNo])
+  // Academic constraint
+  @@unique([schoolId, admissionNo]) 
+  // Auth/Login logic
+  @@unique([userId, schoolId])
   @@map("students")
 }
 

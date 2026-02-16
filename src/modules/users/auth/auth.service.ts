@@ -3,13 +3,16 @@ import {
   ConflictException,
   BadRequestException,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { MailService } from '../../../core/mail/mail.service';
 import { SignupDto } from './dto/signup.dto';
 import { UserRepository } from '../user.repository';
 import { CacheService } from '../../../core/redis/cache.service';
 import * as bcrypt from 'bcryptjs';
-import { UserRole } from '@prisma/client';
+import { DomainType, UserRole } from '@prisma/client';
+import { PrismaService } from 'src/core/prisma/prisma.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -17,6 +20,8 @@ export class AuthService {
     private readonly userRepo: UserRepository,
     private readonly mailService: MailService,
     private readonly cacheService: CacheService,
+    private prisma: PrismaService,
+    private jwtService: JwtService,
   ) {}
 
   async signup(dto: SignupDto) {
@@ -96,6 +101,109 @@ export class AuthService {
 
     return {
       message: 'Account activated successfully.',
+    };
+  }
+
+  /**
+   * 1. GLOBAL LOGIN (For School Owners)
+   * Domain: edusmartix.com / app.edusmartix.com
+   */
+  async loginGlobal(email: string, pass: string) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user || !user.passwordHash || user.role !== 'SCHOOL_OWNER') {
+      throw new UnauthorizedException('Invalid credentials.');
+    }
+
+    const isMatch = await bcrypt.compare(pass, user.passwordHash);
+    if (!isMatch) throw new UnauthorizedException('Invalid credentials');
+
+    // Issue a "Global" token (no schoolId)
+    const payload = { sub: user.id, role: user.role, type: 'GLOBAL' };
+    return {
+      accessToken: await this.jwtService.signAsync(payload),
+      user: { id: user.id, email: user.email, firstName: user.firstName },
+    };
+  }
+
+  /**
+   * 2. TENANT LOGIN (Staff, Parents, Students)
+   * Domain: schoolname.edusmartix.com or custom domains
+   */
+  async loginTenant(
+    email: string,
+    pass: string,
+    schoolId: number,
+    domainType: DomainType,
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) throw new UnauthorizedException('Account not found.');
+
+    let profile: any = null;
+    let loginRole: string = '';
+
+    // Use switch case for cleaner logic based on the domain being accessed
+    switch (domainType) {
+      case 'STUDENTS':
+        profile = await this.prisma.student.findUnique({
+          where: { userId_schoolId: { userId: user.id, schoolId } },
+        });
+        loginRole = 'STUDENT';
+        break;
+
+      case 'PARENTS':
+        profile = await this.prisma.parentProfile.findUnique({
+          where: { userId_schoolId: { userId: user.id, schoolId } },
+        });
+        loginRole = 'PARENT';
+        break;
+
+      case 'SCHOOL_PORTAL':
+      default:
+        profile = await this.prisma.staffProfile.findUnique({
+          where: { userId_schoolId: { userId: user.id, schoolId } },
+        });
+        // For staff, we use the specific role from their profile (ADMIN, ACCOUNTANT, etc.)
+        loginRole = profile?.role;
+        break;
+    }
+
+    // Robust validation check
+    if (!profile || !profile.passwordHash) {
+      throw new UnauthorizedException(
+        'No active account found for this school portal.',
+      );
+    }
+
+    // Profile-level isActive check
+    // Note: Student model doesn't have isActive in your current schema,
+    // so we fallback to 'true' if the field doesn't exist.
+    const isProfileActive = profile.isActive ?? true;
+    if (!isProfileActive) {
+      throw new UnauthorizedException(
+        'Your access to this school has been deactivated.',
+      );
+    }
+
+    const isMatch = await bcrypt.compare(pass, profile.passwordHash);
+    if (!isMatch) throw new UnauthorizedException('Invalid credentials.');
+
+    // Issue the token...
+    const payload = {
+      sub: user.id,
+      schoolId,
+      role: user.role,
+      profileRole: loginRole,
+      type: 'TENANT',
+    };
+
+    return {
+      accessToken: await this.jwtService.signAsync(payload),
+      user: {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        role: loginRole,
+      },
     };
   }
 }
