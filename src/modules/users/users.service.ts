@@ -48,7 +48,15 @@ export class UsersService {
       console.log(
         `[AUTH] Staff Created. Email: ${dto.email} | Temp Pass: ${tempPassword} | School: ${schoolId}`,
       );
-      return { user, staffProfile };
+      return {
+        userId: staffProfile.userId,
+        staffId: staffProfile.id,
+        schoolId: schoolId,
+        firstName: staffProfile.firstName,
+        lastName: staffProfile.lastName,
+        StaffRole: staffProfile.role,
+        credentials: { email: user.email, password: tempPassword },
+      };
     });
   }
 
