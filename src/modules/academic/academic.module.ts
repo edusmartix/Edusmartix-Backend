@@ -1,16 +1,27 @@
 import { Module } from '@nestjs/common';
 import { AcademicSessionService } from './services/academic-session.service';
-// import { ClassStructureService } from './services/class-structure.service';
+import { ClassStructureService } from './services/class-structure.service';
 // import { CurriculumService } from './services/curriculum.service';
 import { AcademicSessionController } from './controllers/academic-session.controller';
 import { AcademicRepository } from './repositories/academic.repository';
-// import { ClassStructureController } from './controllers/class-structure.controller';
+import { ClassStructureController } from './controllers/class-structure.controller';
+import { ClassStructureRepository } from './repositories/class-structure.repository';
 // import { CurriculumController } from './controllers/curriculum.controller';
 
 @Module({
   imports: [], // Add CoreModule or PrismaModule here if not global
-  controllers: [AcademicSessionController],
-  providers: [AcademicSessionService, AcademicRepository],
-  exports: [AcademicSessionService, AcademicRepository],
+  controllers: [AcademicSessionController, ClassStructureController],
+  providers: [
+    AcademicSessionService,
+    AcademicRepository,
+    ClassStructureService,
+    ClassStructureRepository,
+  ],
+  exports: [
+    AcademicSessionService,
+    AcademicRepository,
+    ClassStructureService,
+    ClassStructureRepository,
+  ],
 })
 export class AcademicModule {}
