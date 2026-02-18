@@ -1,92 +1,75 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
 import { CreateSessionDto } from '../dto/create-session.dto';
+import { AcademicRepository } from '../academic.repository';
 
 @Injectable()
 export class AcademicSessionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly academicRepo: AcademicRepository,
+  ) {}
 
   async createSession(schoolId: number, dto: CreateSessionDto) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Handle "Single Active Session" rule
+      // 1. Business Logic: Ensure single active session
       if (dto.isActive) {
-        await tx.academicSession.updateMany({
-          where: { schoolId, isActive: true },
-          data: { isActive: false },
-        });
+        await this.academicRepo.deactivateAllSessions(schoolId, tx);
       }
 
-      // 2. Create the Session
-      const session = await tx.academicSession.create({
-        data: {
-          ...dto,
-          schoolId,
-        },
-      });
+      // 2. Data Access: Create Session
+      const session = await this.academicRepo.createSession(
+        { ...dto, schoolId },
+        tx,
+      );
 
-      // 3. Auto-generate Default Terms
+      // 3. Business Logic: Prepare default terms
       const defaultTerms = [
-        { name: 'First Term', orderIndex: 1, isActive: true }, // First term active by default
-        { name: 'Second Term', orderIndex: 2, isActive: false },
-        { name: 'Third Term', orderIndex: 3, isActive: false },
+        {
+          name: 'First Term',
+          orderIndex: 1,
+          isActive: true,
+          academicSessionId: session.id,
+        },
+        {
+          name: 'Second Term',
+          orderIndex: 2,
+          isActive: false,
+          academicSessionId: session.id,
+        },
+        {
+          name: 'Third Term',
+          orderIndex: 3,
+          isActive: false,
+          academicSessionId: session.id,
+        },
       ];
 
-      await tx.term.createMany({
-        data: defaultTerms.map((term) => ({
-          ...term,
-          academicSessionId: session.id,
-        })),
-      });
+      await this.academicRepo.createTerms(defaultTerms, tx);
 
-      // Return session with terms for the response
-      return tx.academicSession.findUnique({
-        where: { id: session.id },
-        include: { terms: true },
-      });
+      // 4. Return complete object
+      return this.academicRepo.findSessionById(session.id, schoolId);
     });
-  }
-
-  async getCurrentSession(schoolId: number) {
-    const session = await this.prisma.academicSession.findFirst({
-      where: { schoolId, isActive: true },
-      include: {
-        terms: {
-          where: { isActive: true },
-        },
-      },
-    });
-
-    if (!session) {
-      throw new NotFoundException('No active academic session found.');
-    }
-
-    return session;
   }
 
   async activateTerm(schoolId: number, sessionId: number, termId: number) {
     return this.prisma.$transaction(async (tx) => {
-      // 1. Verify the term belongs to the session and the school
-      const term = await tx.term.findFirst({
-        where: {
-          id: termId,
-          academicSessionId: sessionId,
-          academicSession: { schoolId },
-        },
-      });
-
+      const term = await this.academicRepo.findTermInSession(
+        termId,
+        sessionId,
+        schoolId,
+      );
       if (!term) throw new NotFoundException('Term not found in this session');
 
-      // 2. Deactivate all terms in this session
-      await tx.term.updateMany({
-        where: { academicSessionId: sessionId },
-        data: { isActive: false },
-      });
-
-      // 3. Activate the target term
-      return await tx.term.update({
-        where: { id: termId },
-        data: { isActive: true },
-      });
+      await this.academicRepo.deactivateAllTermsInSession(sessionId, tx);
+      return this.academicRepo.updateTerm(termId, { isActive: true }, tx);
     });
+  }
+
+  async getCurrentSession(schoolId: number) {
+    const session = await this.academicRepo.findCurrentSession(schoolId);
+    if (!session)
+      throw new NotFoundException('No active academic session found.');
+    return session;
   }
 }
