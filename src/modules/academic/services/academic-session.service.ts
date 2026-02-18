@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
 import { CreateSessionDto } from '../dto/create-session.dto';
-import { AcademicRepository } from '../academic.repository';
+import { AcademicRepository } from '../repositories/academic.repository';
 
 @Injectable()
 export class AcademicSessionService {

@@ -3,7 +3,7 @@ import { AcademicSessionService } from './services/academic-session.service';
 // import { ClassStructureService } from './services/class-structure.service';
 // import { CurriculumService } from './services/curriculum.service';
 import { AcademicSessionController } from './controllers/academic-session.controller';
-import { AcademicRepository } from './academic.repository';
+import { AcademicRepository } from './repositories/academic.repository';
 // import { ClassStructureController } from './controllers/class-structure.controller';
 // import { CurriculumController } from './controllers/curriculum.controller';
 
