@@ -26,7 +26,8 @@ export class AcademicSessionController {
   @Roles(UserRole.SCHOOL_OWNER)
   @StaffRoles(StaffRole.ADMIN)
   async create(@Req() req, @Body() dto: CreateSessionDto) {
-    return this.sessionService.createSession(req.schoolId, dto);
+    const result = await this.sessionService.createSession(req.schoolId, dto);
+    return result;
   }
 
   @Get('current')
