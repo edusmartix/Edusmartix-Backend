@@ -34,6 +34,16 @@ export class AcademicSessionController {
     return this.sessionService.getCurrentSession(req.schoolId);
   }
 
+  @Patch(':id/activate')
+  @Roles(UserRole.SCHOOL_OWNER)
+  @StaffRoles(StaffRole.ADMIN)
+  async activateSession(
+    @Req() req,
+    @Param('id', ParseIntPipe) sessionId: number,
+  ) {
+    return this.sessionService.activateSession(req.schoolId, sessionId);
+  }
+
   @Patch(':sessionId/terms/:termId/activate')
   @Roles(UserRole.SCHOOL_OWNER)
   @StaffRoles(StaffRole.ADMIN)

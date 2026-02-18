@@ -72,4 +72,26 @@ export class AcademicSessionService {
       throw new NotFoundException('No active academic session found.');
     return session;
   }
+  async activateSession(schoolId: number, sessionId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Verify session exists and belongs to school
+      const session = await this.academicRepo.findSessionById(
+        sessionId,
+        schoolId,
+      );
+      if (!session) {
+        throw new NotFoundException('Academic session not found');
+      }
+
+      // 2. Deactivate all other sessions for this school
+      await this.academicRepo.deactivateAllSessions(schoolId, tx);
+
+      // 3. Activate the target session
+      return await this.academicRepo.updateSession(
+        sessionId,
+        { isActive: true },
+        tx,
+      );
+    });
+  }
 }

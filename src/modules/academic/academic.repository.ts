@@ -29,6 +29,17 @@ export class AcademicRepository {
     });
   }
 
+  async updateSession(
+    id: number,
+    data: Prisma.AcademicSessionUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return (tx || this.prisma).academicSession.update({
+      where: { id },
+      data,
+    });
+  }
+
   async findCurrentSession(schoolId: number) {
     return this.prisma.academicSession.findFirst({
       where: { schoolId, isActive: true },

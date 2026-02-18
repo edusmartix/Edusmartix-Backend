@@ -293,7 +293,7 @@ model Term {
   academicSession    AcademicSession     @relation(fields: [academicSessionId], references: [id])
   attendanceSessions AttendanceSession[]
 
-  @@unique([academicSessionId, isActive])
+  @@unique([academicSessionId, name])
   @@map("terms")
 }
 
