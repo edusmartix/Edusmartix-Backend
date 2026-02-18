@@ -54,4 +54,9 @@ export class AcademicSessionController {
   ) {
     return this.sessionService.activateTerm(req.schoolId, sessionId, termId);
   }
+
+  @Get('current-term')
+  async getCurrentTerm(@Req() req) {
+    return this.sessionService.getCurrentTerm(req.schoolId);
+  }
 }

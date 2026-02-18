@@ -68,6 +68,21 @@ export class AcademicRepository {
     });
   }
 
+  async findCurrentTerm(schoolId: number) {
+    return this.prisma.term.findFirst({
+      where: {
+        isActive: true,
+        academicSession: {
+          schoolId,
+          isActive: true,
+        },
+      },
+      include: {
+        academicSession: true, // Useful to know which session the term belongs to
+      },
+    });
+  }
+
   async deactivateAllTermsInSession(
     sessionId: number,
     tx?: Prisma.TransactionClient,

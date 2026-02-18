@@ -52,26 +52,13 @@ export class AcademicSessionService {
     });
   }
 
-  async activateTerm(schoolId: number, sessionId: number, termId: number) {
-    return this.prisma.$transaction(async (tx) => {
-      const term = await this.academicRepo.findTermInSession(
-        termId,
-        sessionId,
-        schoolId,
-      );
-      if (!term) throw new NotFoundException('Term not found in this session');
-
-      await this.academicRepo.deactivateAllTermsInSession(sessionId, tx);
-      return this.academicRepo.updateTerm(termId, { isActive: true }, tx);
-    });
-  }
-
   async getCurrentSession(schoolId: number) {
     const session = await this.academicRepo.findCurrentSession(schoolId);
     if (!session)
       throw new NotFoundException('No active academic session found.');
     return session;
   }
+
   async activateSession(schoolId: number, sessionId: number) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Verify session exists and belongs to school
@@ -92,6 +79,30 @@ export class AcademicSessionService {
         { isActive: true },
         tx,
       );
+    });
+  }
+
+  async getCurrentTerm(schoolId: number) {
+    const term = await this.academicRepo.findCurrentTerm(schoolId);
+    if (!term) {
+      throw new NotFoundException(
+        'No active term found for the current session.',
+      );
+    }
+    return term;
+  }
+
+  async activateTerm(schoolId: number, sessionId: number, termId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const term = await this.academicRepo.findTermInSession(
+        termId,
+        sessionId,
+        schoolId,
+      );
+      if (!term) throw new NotFoundException('Term not found in this session');
+
+      await this.academicRepo.deactivateAllTermsInSession(sessionId, tx);
+      return this.academicRepo.updateTerm(termId, { isActive: true }, tx);
     });
   }
 }
