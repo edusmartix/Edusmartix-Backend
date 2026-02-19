@@ -30,4 +30,22 @@ export class ClassStructureRepository {
       include: { classArms: true },
     });
   }
+
+  async reorderLevels(
+    schoolId: number,
+    levels: { id: number; order: number }[],
+    tx?: Prisma.TransactionClient,
+  ) {
+    const client = tx || this.prisma;
+
+    // We return the result of all updates
+    return Promise.all(
+      levels.map((item) =>
+        client.classLevel.update({
+          where: { id: item.id, schoolId },
+          data: { levelOrder: item.order },
+        }),
+      ),
+    );
+  }
 }

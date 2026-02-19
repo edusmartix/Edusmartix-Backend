@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ClassStructureRepository } from '../repositories/class-structure.repository';
-import { CreateLevelDto } from '../dto/create-level.dto';
+import { CreateLevelDto, ReorderLevelsDto } from '../dto/class-level.dto';
+import { PrismaService } from 'src/core/prisma/prisma.service';
 
 @Injectable()
 export class ClassStructureService {
-  constructor(private readonly repo: ClassStructureRepository) {}
+  constructor(
+    private readonly repo: ClassStructureRepository,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async createLevelWithArms(schoolId: number, dto: CreateLevelDto) {
     // 1. Create the Level (Grade 1)
@@ -29,5 +33,13 @@ export class ClassStructureService {
 
   async getFullStructure(schoolId: number) {
     return this.repo.findLevels(schoolId);
+  }
+
+  async reorderLevels(schoolId: number, dto: ReorderLevelsDto) {
+    // We wrap this in a transaction to ensure all levels are updated together.
+    // If one fails (e.g. an ID doesn't exist), they all roll back.
+    return this.prisma.$transaction(async (tx) => {
+      return this.repo.reorderLevels(schoolId, dto.levels, tx);
+    });
   }
 }

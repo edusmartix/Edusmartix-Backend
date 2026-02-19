@@ -29,3 +29,18 @@ export class CreateLevelDto {
   @IsOptional()
   arms?: ArmInputDto[];
 }
+
+class LevelOrderInput {
+  @IsInt()
+  id: number;
+
+  @IsInt()
+  order: number;
+}
+
+export class ReorderLevelsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => LevelOrderInput)
+  levels: LevelOrderInput[];
+}
