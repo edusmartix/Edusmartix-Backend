@@ -8,6 +8,9 @@ import { ClassStructureController } from './controllers/class-structure.controll
 import { ClassStructureRepository } from './repositories/class-structure.repository';
 import { CurriculumController } from './controllers/curriculum.controller';
 import { CurriculumRepository } from './repositories/curriculum.repository';
+import { EnrollmentController } from './controllers/enrollment.controller';
+import { EnrollmentService } from './services/enrollment.service';
+import { EnrollmentRepository } from './repositories/enrollment.repository';
 
 @Module({
   imports: [], // Add CoreModule or PrismaModule here if not global
@@ -15,6 +18,7 @@ import { CurriculumRepository } from './repositories/curriculum.repository';
     AcademicSessionController,
     ClassStructureController,
     CurriculumController,
+    EnrollmentController,
   ],
   providers: [
     AcademicSessionService,
@@ -23,6 +27,8 @@ import { CurriculumRepository } from './repositories/curriculum.repository';
     ClassStructureRepository,
     CurriculumService,
     CurriculumRepository,
+    EnrollmentService,
+    EnrollmentRepository,
   ],
   exports: [
     AcademicSessionService,
@@ -31,6 +37,8 @@ import { CurriculumRepository } from './repositories/curriculum.repository';
     ClassStructureRepository,
     CurriculumService,
     CurriculumRepository,
+    EnrollmentService,
+    EnrollmentRepository,
   ],
 })
 export class AcademicModule {}

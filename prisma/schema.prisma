@@ -190,6 +190,10 @@ model StaffProfile {
 
   user   User   @relation(fields: [userId], references: [id])
   school School @relation(fields: [schoolId], references: [id])
+  
+  // Relations to academic models for teacher assignments
+  classArms ClassArm[] @relation("ClassTeacher")
+  classSubjects ClassSubject[] @relation("SubjectTeacher")
 
   @@unique([userId, schoolId])
   @@map("staff_profiles")
@@ -319,6 +323,10 @@ model ClassArm {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
+  // Link to StaffProfile for the Class Teacher
+  classTeacherId Int?   @map("class_teacher_id")
+  classTeacher   StaffProfile? @relation("ClassTeacher", fields: [classTeacherId], references: [id])
+
   classLevel         ClassLevel          @relation(fields: [classLevelId], references: [id])
   enrollments        Enrollment[]
   classSubjects      ClassSubject[]
@@ -376,6 +384,10 @@ model ClassSubject {
   subject         Subject         @relation(fields: [subjectId], references: [id])
   classArm        ClassArm        @relation(fields: [classArmId], references: [id])
   academicSession AcademicSession @relation(fields: [academicSessionId], references: [id])
+
+  // Link to StaffProfile for the Subject Teacher
+  teacherId Int? @map("teacher_id")
+  teacher   StaffProfile? @relation("SubjectTeacher", fields: [teacherId], references: [id])
 
   @@unique([subjectId, classArmId, academicSessionId])
   @@map("class_subjects")
