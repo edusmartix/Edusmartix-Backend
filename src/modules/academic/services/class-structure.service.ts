@@ -16,9 +16,10 @@ export class ClassStructureService {
 
     // 2. If arms are provided (e.g. ["A", "B"]), create them
     if (dto.arms && dto.arms.length > 0) {
-      const armData = dto.arms.map((armName) => ({
+      const armData = dto.arms.map((arm) => ({
         classLevelId: level.id,
-        name: armName,
+        name: arm.name,
+        classTeacherId: arm.classTeacherId || null, // Optional assignment
       }));
       await this.repo.createArms(armData);
     }

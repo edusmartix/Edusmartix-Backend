@@ -1,4 +1,20 @@
-import { IsString, IsOptional, IsInt, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  IsArray,
+  ValidateNested,
+} from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class ArmInputDto {
+  @IsString()
+  name: string; // e.g., "A"
+
+  @IsInt()
+  @IsOptional()
+  classTeacherId?: number; // Optional staff profile ID
+}
 
 export class CreateLevelDto {
   @IsString()
@@ -8,7 +24,8 @@ export class CreateLevelDto {
   levelOrder: number; // e.g., 1
 
   @IsArray()
-  @IsString({ each: true })
+  @ValidateNested({ each: true })
+  @Type(() => ArmInputDto)
   @IsOptional()
-  arms?: string[]; // e.g., ["A", "B", "Gold"]
+  arms?: ArmInputDto[];
 }

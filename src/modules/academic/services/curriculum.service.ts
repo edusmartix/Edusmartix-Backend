@@ -20,8 +20,9 @@ export class CurriculumService {
       await this.sessionService.getCurrentSession(schoolId);
 
     // 2. Prepare mappings for multiple subjects to one class arm
-    const mappings = dto.subjectIds.map((subjectId) => ({
-      subjectId,
+    const mappings = dto.subjects.map((sub) => ({
+      subjectId: sub.subjectId,
+      teacherId: sub.teacherId || null, // Optional assignment
       classArmId: dto.classArmId,
       academicSessionId: currentSession.id,
       priority: dto.priority,
