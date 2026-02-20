@@ -35,12 +35,12 @@ export class CurriculumController {
     return this.curriculumService.assignCurriculum(req.schoolId, dto);
   }
 
-    @Get('class/:armId')
-    async getClassSubjects(
-      @Req() req,
-      @Param('armId', ParseIntPipe) armId: number,
-    ) {
-      // Logic to fetch subjects for the specific class in current session
-      return this.curriculumService.getClassSubjects(req.schoolId, armId);
-    }
+    // @Get('class/:armId')
+    // async getClassSubjects(
+    //   @Req() req,
+    //   @Param('armId', ParseIntPipe) armId: number,
+    // ) {
+    //   // Logic to fetch subjects for the specific class in current session
+    //   return this.curriculumService.getClassSubjects(req.schoolId, armId);
+    // }
 }
