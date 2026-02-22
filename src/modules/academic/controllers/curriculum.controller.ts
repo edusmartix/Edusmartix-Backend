@@ -28,7 +28,7 @@ export class CurriculumController {
     return this.curriculumService.createSubject(req.schoolId, dto);
   }
 
-  @Post('assign')
+  @Post('subjects/assign')
   @Roles(UserRole.SCHOOL_OWNER)
   @StaffRoles(StaffRole.ADMIN)
   async assignToClass(@Req() req, @Body() dto: AssignSubjectDto) {
