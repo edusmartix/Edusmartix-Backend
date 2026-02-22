@@ -20,9 +20,6 @@ export class CreateLevelDto {
   @IsString()
   name: string; // e.g., "Grade 1"
 
-  @IsInt()
-  levelOrder: number; // e.g., 1
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ArmInputDto)
