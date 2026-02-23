@@ -6,6 +6,18 @@ import { Prisma } from '@prisma/client';
 export class ClassStructureRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  // --- CATEGORIES ---
+  async createCategory(data: Prisma.ClassCategoryUncheckedCreateInput) {
+    return this.prisma.classCategory.create({ data });
+  }
+
+  async findAllCategories(schoolId: number) {
+    return this.prisma.classCategory.findMany({
+      where: { schoolId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   // --- LEVELS ---
   async createLevel(data: Prisma.ClassLevelUncheckedCreateInput) {
     return this.prisma.classLevel.create({ data });
@@ -16,6 +28,23 @@ export class ClassStructureRepository {
       where: { schoolId },
       include: { classArms: true },
       orderBy: { levelOrder: 'asc' },
+    });
+  }
+
+  async findStructureGroupedByCategory(schoolId: number) {
+    return this.prisma.classCategory.findMany({
+      where: { schoolId },
+      include: {
+        classLevels: {
+          orderBy: { levelOrder: 'asc' }, // Respects your drag-and-drop order
+          include: {
+            classArms: {
+              orderBy: { name: 'asc' }, // Orders arms (A, B, C) alphabetically
+            },
+          },
+        },
+      },
+      orderBy: { id: 'asc' }, // Or add a 'categoryOrder' if you want to drag categories too
     });
   }
 

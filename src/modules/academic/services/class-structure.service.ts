@@ -1,6 +1,10 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ClassStructureRepository } from '../repositories/class-structure.repository';
-import { CreateLevelDto, ReorderLevelsDto } from '../dto/class-level.dto';
+import {
+  CreateCategoryDto,
+  CreateLevelDto,
+  ReorderLevelsDto,
+} from '../dto/class-level.dto';
 import { PrismaService } from 'src/core/prisma/prisma.service';
 
 @Injectable()
@@ -9,6 +13,29 @@ export class ClassStructureService {
     private readonly repo: ClassStructureRepository,
     private readonly prisma: PrismaService,
   ) {}
+
+  async createCategory(schoolId: number, dto: CreateCategoryDto) {
+    // 1. Check for duplicate name in the same school
+    const existing = await this.prisma.classCategory.findUnique({
+      where: {
+        schoolId_name: { schoolId, name: dto.name },
+      },
+    });
+
+    if (existing) {
+      throw new BadRequestException(`Category "${dto.name}" already exists.`);
+    }
+
+    return this.repo.createCategory({
+      schoolId,
+      name: dto.name,
+      type: dto.type,
+    });
+  }
+
+  async getAllCategories(schoolId: number) {
+    return this.repo.findAllCategories(schoolId);
+  }
 
   async createLevelWithArms(schoolId: number, dto: CreateLevelDto) {
     // 1. Force the calculation of the NEXT order number
@@ -24,6 +51,7 @@ export class ClassStructureService {
     const level = await this.repo.createLevel({
       schoolId,
       name: dto.name,
+      classCategoryId: dto.classCategoryId,
       levelOrder: nextOrder, // This ensures NO unique constraint clash
     });
 
@@ -40,8 +68,12 @@ export class ClassStructureService {
     return this.repo.findLevelWithArms(level.id);
   }
 
-  async getFullStructure(schoolId: number) {
+  async getClassStructure(schoolId: number) {
     return this.repo.findLevels(schoolId);
+  }
+
+  async getFullStructure(schoolId: number) {
+    return this.repo.findStructureGroupedByCategory(schoolId);
   }
 
   async reorderLevels(schoolId: number, dto: ReorderLevelsDto) {

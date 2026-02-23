@@ -13,12 +13,28 @@ import { Roles } from '../../../core/common/decorators/roles.decorators';
 import { StaffRole, UserRole } from '@prisma/client';
 import { StaffRoles } from 'src/core/common/decorators/staff-roles.decorator';
 import { ClassStructureService } from '../services/class-structure.service';
-import { CreateLevelDto, ReorderLevelsDto } from '../dto/class-level.dto';
+import {
+  CreateCategoryDto,
+  CreateLevelDto,
+  ReorderLevelsDto,
+} from '../dto/class-level.dto';
 
 @Controller('academics/structure')
 @UseGuards(AuthGuard, PermissionsGuard)
 export class ClassStructureController {
   constructor(private readonly structureService: ClassStructureService) {}
+
+  @Post('categories')
+  @Roles(UserRole.SCHOOL_OWNER)
+  @StaffRoles(StaffRole.ADMIN)
+  async createCategory(@Req() req, @Body() dto: CreateCategoryDto) {
+    return this.structureService.createCategory(req.schoolId, dto);
+  }
+
+  @Get('categories')
+  async getCategories(@Req() req) {
+    return this.structureService.getAllCategories(req.schoolId);
+  }
 
   @Post('levels')
   @Roles(UserRole.SCHOOL_OWNER)

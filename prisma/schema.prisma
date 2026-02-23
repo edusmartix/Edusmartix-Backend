@@ -49,6 +49,13 @@ enum SessionStatus {
   ARCHIVED
 }
 
+enum CategoryType {
+  PRE_SCHOOL
+  PRIMARY
+  SECONDARY
+  TERTIARY
+}
+
 enum EnrollmentStatus {
   ACTIVE
   REPEATED
@@ -136,6 +143,7 @@ model School {
   domains          SchoolDomain[]
 
   @@map("schools")
+  classCategories ClassCategory[]
 }
 
 // School Group model for school branches
@@ -301,9 +309,24 @@ model Term {
   @@map("terms")
 }
 
+model ClassCategory {
+  id        Int          @id @default(autoincrement())
+  schoolId  Int          @map("school_id")
+  name      String       // e.g., "Senior Secondary", "Lower Primary"
+  type      CategoryType // For system-wide logic
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  school      School       @relation(fields: [schoolId], references: [id])
+  classLevels ClassLevel[]
+
+  @@unique([schoolId, name])
+  @@map("class_categories")
+}
+
 model ClassLevel {
   id         Int      @id @default(autoincrement())
   schoolId   Int      @map("school_id")
+  classCategoryId Int      @map("class_category_id")
   name       String 
   levelOrder Int      @map("level_order")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -311,6 +334,8 @@ model ClassLevel {
 
   school    School     @relation(fields: [schoolId], references: [id])
   classArms ClassArm[]
+
+  category   ClassCategory @relation(fields: [classCategoryId], references: [id])
 
   @@unique([schoolId, levelOrder])
   @@map("class_levels")
