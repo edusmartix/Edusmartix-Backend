@@ -326,7 +326,7 @@ model ClassCategory {
 model ClassLevel {
   id         Int      @id @default(autoincrement())
   schoolId   Int      @map("school_id")
-  classCategoryId Int      @map("class_category_id")
+  classCategoryId Int?      @map("class_category_id")
   name       String 
   levelOrder Int      @map("level_order")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -335,7 +335,7 @@ model ClassLevel {
   school    School     @relation(fields: [schoolId], references: [id])
   classArms ClassArm[]
 
-  category   ClassCategory @relation(fields: [classCategoryId], references: [id])
+  category   ClassCategory? @relation(fields: [classCategoryId], references: [id])
 
   @@unique([schoolId, levelOrder])
   @@map("class_levels")
