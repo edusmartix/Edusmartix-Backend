@@ -2,56 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/core/prisma/prisma.service';
 import { AcademicSessionService } from '../academic/services/academic-session.service';
 import { MarkAttendanceDto } from './dto/create-attendance.dto';
+import { AttendanceRepository } from './attendance.repository';
 
 @Injectable()
 export class AttendanceService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly repo: AttendanceRepository,
     private readonly sessionService: AcademicSessionService,
+    private readonly prisma: PrismaService, // Needed for transaction coordination
   ) {}
 
   async markAttendance(schoolId: number, dto: MarkAttendanceDto) {
     const currentSession =
       await this.sessionService.getCurrentSession(schoolId);
     const activeTerm = await this.sessionService.getActiveTerm(schoolId);
+    const date = new Date(dto.date);
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Find or Create the Session for this day
-      const session = await tx.attendanceSession.upsert({
-        where: {
-          classArmId_academicSessionId_attendanceDate: {
-            classArmId: dto.classArmId,
-            academicSessionId: currentSession.id,
-            attendanceDate: new Date(dto.date),
-          },
-        },
-        update: {}, // No changes needed if it exists
-        create: {
-          classArmId: dto.classArmId,
-          academicSessionId: currentSession.id,
-          termId: activeTerm.id,
-          attendanceDate: new Date(dto.date),
-        },
+      // We pass the transactional 'tx' or use repo methods
+      // Note: For deep transactions, some prefer passing 'tx' to repo methods
+      const session = await this.repo.findOrCreateSession({
+        classArmId: dto.classArmId,
+        academicSessionId: currentSession.id,
+        termId: activeTerm.id,
+        attendanceDate: date,
       });
 
-      // 2. Bulk Upsert the individual records
-      // Prisma doesn't have a native "bulk upsert" that handles unique constraints
-      // perfectly in one query, so we use a loop inside the transaction.
       const saveRecords = dto.records.map((rec) =>
-        tx.attendanceRecord.upsert({
-          where: {
-            attendanceSessionId_enrollmentId: {
-              attendanceSessionId: session.id,
-              enrollmentId: rec.enrollmentId,
-            },
-          },
-          update: { status: rec.status },
-          create: {
-            attendanceSessionId: session.id,
-            enrollmentId: rec.enrollmentId,
-            status: rec.status,
-          },
-        }),
+        this.repo.upsertRecord(session.id, rec.enrollmentId, rec.status),
       );
 
       await Promise.all(saveRecords);
@@ -73,65 +51,32 @@ export class AttendanceService {
     const targetDate = new Date(date);
 
     return this.prisma.$transaction(async (tx) => {
-      // 1. Upsert the Session
-      const session = await tx.attendanceSession.upsert({
-        where: {
-          classArmId_academicSessionId_attendanceDate: {
-            classArmId,
-            academicSessionId: currentSession.id,
-            attendanceDate: targetDate,
-          },
-        },
-        update: {},
-        create: {
-          classArmId,
-          academicSessionId: currentSession.id,
-          termId: activeTerm.id,
-          attendanceDate: targetDate,
-        },
+      const session = await this.repo.findOrCreateSession({
+        classArmId,
+        academicSessionId: currentSession.id,
+        termId: activeTerm.id,
+        attendanceDate: targetDate,
       });
 
-      // 2. Check if records already exist to avoid duplicates
-      const existingCount = await tx.attendanceRecord.count({
-        where: { attendanceSessionId: session.id },
-      });
+      const existingCount = await this.repo.countRecords(session.id);
 
       if (existingCount === 0) {
-        // 3. Get all active students in this class
-        const enrollments = await tx.enrollment.findMany({
-          where: {
-            classArmId,
-            academicSessionId: currentSession.id,
-            enrollmentStatus: 'ACTIVE',
-          },
-        });
+        const enrollments = await this.repo.findActiveEnrollments(
+          classArmId,
+          currentSession.id,
+        );
 
-        // 4. Batch Create as PRESENT
         if (enrollments.length > 0) {
-          await tx.attendanceRecord.createMany({
-            data: enrollments.map((e) => ({
-              attendanceSessionId: session.id,
-              enrollmentId: e.id,
-              status: 'PRESENT',
-            })),
-            skipDuplicates: true, // Safety net
-          });
+          const records = enrollments.map((e) => ({
+            attendanceSessionId: session.id,
+            enrollmentId: e.id,
+            status: 'PRESENT' as const,
+          }));
+          await this.repo.createManyRecords(records);
         }
       }
 
-      // 5. Return the session with students for the frontend
-      return tx.attendanceSession.findUnique({
-        where: { id: session.id },
-        include: {
-          records: {
-            include: {
-              enrollment: {
-                include: { student: { include: { user: true } } },
-              },
-            },
-          },
-        },
-      });
+      return this.repo.getSessionWithRecords(session.id);
     });
   }
 }

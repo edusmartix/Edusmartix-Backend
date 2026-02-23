@@ -14,7 +14,6 @@ import { AttendanceModule } from './modules/attendance/attendance.module';
 import { BillingModule } from './modules/billing/billing.module';
 import { AuthModule } from './modules/users/auth/auth.module';
 import { MediaModule } from './modules/media/media.module';
-import { AttendanceModule } from './modules/attendance/attendance.module';
 import { ResultsModule } from './modules/results/results.module';
 
 @Module({

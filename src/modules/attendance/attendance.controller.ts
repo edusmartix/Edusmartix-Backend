@@ -13,10 +13,7 @@ import { Roles } from 'src/core/common/decorators/roles.decorators';
 import { StaffRoles } from 'src/core/common/decorators/staff-roles.decorator';
 import { UserRole, StaffRole } from '@prisma/client';
 
-@Controller({
-  path: 'attendance',
-  version: '1',
-})
+@Controller('attendance')
 export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {}
 
