@@ -59,6 +59,25 @@ export class AcademicSessionService {
     return session;
   }
 
+  async getActiveTerm(schoolId: number) {
+    const activeTerm = await this.prisma.term.findFirst({
+      where: {
+        academicSession: {
+          schoolId: schoolId,
+        },
+        isActive: true,
+      },
+    });
+
+    if (!activeTerm) {
+      throw new NotFoundException(
+        'No active term found. Please activate a term in settings.',
+      );
+    }
+
+    return activeTerm;
+  }
+
   async activateSession(schoolId: number, sessionId: number) {
     return this.prisma.$transaction(async (tx) => {
       // 1. Verify session exists and belongs to school
