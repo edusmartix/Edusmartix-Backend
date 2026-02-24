@@ -81,12 +81,7 @@ export class ClassStructureService {
     const levelIds = dto.levels.map((l) => l.id);
 
     // 2. Verify all these levels exist for THIS school
-    const count = await this.prisma.classLevel.count({
-      where: {
-        id: { in: levelIds },
-        schoolId: schoolId,
-      },
-    });
+    const count = await this.repo.countClassLevels(schoolId, levelIds);
 
     if (count !== levelIds.length) {
       throw new BadRequestException(
