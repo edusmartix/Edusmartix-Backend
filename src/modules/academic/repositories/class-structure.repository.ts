@@ -60,6 +60,15 @@ export class ClassStructureRepository {
     });
   }
 
+  async countClassLevels(schoolId: number, levelIds: number[]) {
+    return this.prisma.classLevel.count({
+      where: {
+        id: { in: levelIds },
+        schoolId: schoolId,
+      },
+    });
+  }
+
   async reorderLevels(
     schoolId: number,
     levels: { id: number; order: number }[],
