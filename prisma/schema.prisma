@@ -74,6 +74,33 @@ enum AttendanceStatus {
   LATE
 }
 
+enum ExamType {
+  MIDTERM
+  ENDTERM
+  MOCK
+  CUSTOM
+}
+
+enum ExamStatus {
+  DRAFT
+  OPEN
+  LOCKED
+  PUBLISHED
+}
+
+enum ResultSheetType {
+  TERM
+  ANNUAL
+  CUSTOM
+}
+
+enum ResultSheetStatus {
+  DRAFT
+  PROCESSING
+  PUBLISHED
+  ARCHIVED
+}
+
 // ==========================
 // AUTHENTICATION & USERS
 // ==========================
@@ -291,6 +318,7 @@ model AcademicSession {
 
   // @@unique([schoolId, isActive])
   @@map("academic_sessions")
+  examSessions ExamSession[]
 }
 
 model Term {
@@ -307,6 +335,7 @@ model Term {
 
   @@unique([academicSessionId, name])
   @@map("terms")
+  examSessions ExamSession[]
 }
 
 model ClassCategory {
@@ -339,6 +368,7 @@ model ClassLevel {
 
   @@unique([schoolId, levelOrder])
   @@map("class_levels")
+  examSessions ExamSession[]
 }
 
 model ClassArm {
@@ -359,6 +389,7 @@ model ClassArm {
 
   @@unique([classLevelId, name])
   @@map("class_arms")
+  examSessions ExamSession[]
 }
 
 model Enrollment {
@@ -447,4 +478,240 @@ model AttendanceRecord {
 
   @@unique([attendanceSessionId, enrollmentId])
   @@map("attendance_records")
+}
+
+
+
+// --- ASSESSMENT LAYER ---
+
+model ExamSession {
+  id                Int      @id @default(autoincrement())
+  academicSessionId Int      @map("academic_session_id")
+  termId            Int      @map("term_id")
+  classLevelId      Int      @map("class_level_id")
+  classArmId        Int?     @map("class_arm_id") // NULL = Entire Level
+  
+  title             String
+  examType      ExamType    @map("exam_type")
+  status        ExamStatus  @default(DRAFT)
+  
+  openedAt          DateTime? @map("opened_at")
+  lockedAt          DateTime? @map("locked_at")
+  publishedAt       DateTime? @map("published_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
+  term              Term            @relation(fields: [termId], references: [id])
+  classLevel        ClassLevel      @relation(fields: [classLevelId], references: [id])
+  classArm          ClassArm?       @relation(fields: [classArmId], references: [id])
+  
+  scoreConfigs      ScoreDivisionConfig[]
+  subjectScores     StudentSubjectScore[]
+  gradingScales     GradingScale[]
+  resultSheetLinks  ResultSheetExamSession[]
+
+  @@map("exam_sessions")
+}
+
+model ScoreDivisionConfig {
+  id            Int      @id @default(autoincrement())
+  examSessionId Int      @map("exam_session_id")
+  classLevelId  Int      @map("class_level_id")
+  
+  name          String   // e.g., "1st CA"
+  maxScore      Decimal  @map("max_score") @db.Decimal(5, 2)
+  weight        Decimal? @db.Decimal(5, 2)
+  orderIndex    Int      @map("order_index")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id])
+  studentDivisions StudentScoreDivision[]
+
+  @@map("score_division_configs")
+}
+
+model StudentSubjectScore {
+  id            Int      @id @default(autoincrement())
+  examSessionId Int      @map("exam_session_id")
+  studentId     Int      @map("student_id")
+  subjectId     Int      @map("subject_id")
+  
+  totalScore    Decimal  @map("total_score") @db.Decimal(5, 2)
+  grade         String?
+  remark        String?
+  isAbsent      Boolean  @default(false) @map("is_absent")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id])
+  divisions     StudentScoreDivision[]
+
+  @@unique([examSessionId, studentId, subjectId])
+  @@map("student_subject_scores")
+}
+
+model StudentScoreDivision {
+  id                     Int      @id @default(autoincrement())
+  studentSubjectScoreId  Int      @map("student_subject_score_id")
+  scoreDivisionConfigId  Int      @map("score_division_config_id")
+  score                  Decimal  @db.Decimal(5, 2)
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  subjectScore           StudentSubjectScore @relation(fields: [studentSubjectScoreId], references: [id])
+  config                 ScoreDivisionConfig @relation(fields: [scoreDivisionConfigId], references: [id])
+
+  @@unique([studentSubjectScoreId, scoreDivisionConfigId])
+  @@map("student_score_divisions")
+}
+
+// --- AGGREGATION LAYER (REPORT SHEETS) ---
+
+model ResultSheet {
+  id                Int      @id @default(autoincrement())
+  academicSessionId Int      @map("academic_session_id")
+  termId            Int?     @map("term_id") // NULL for Annual
+  classLevelId      Int      @map("class_level_id")
+  classArmId        Int?     @map("class_arm_id")
+  
+  type              String   // TERM, ANNUAL, CUSTOM
+  status            String   @default("DRAFT") // DRAFT, PROCESSING, PUBLISHED
+  publishedAt       DateTime? @map("published_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  examSessions      ResultSheetExamSession[]
+  summaries         StudentResultSummary[]
+  cumulativeSummaries StudentCumulativeSummary[]
+  skillAssessments  StudentSkillAssessment[]
+
+  @@map("result_sheets")
+}
+
+model ResultSheetExamSession {
+  id            Int      @id @default(autoincrement())
+  resultSheetId Int      @map("result_sheet_id")
+  examSessionId Int      @map("exam_session_id")
+  weight        Decimal  @default(1.0) @db.Decimal(5, 2)
+
+  resultSheet   ResultSheet @relation(fields: [resultSheetId], references: [id])
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id])
+
+  @@unique([resultSheetId, examSessionId])
+  @@map("result_sheet_exam_sessions")
+}
+
+
+// --- GRADING LAYER ---
+
+model GradingScale {
+  id            Int      @id @default(autoincrement())
+  examSessionId Int      @map("exam_session_id")
+  classLevelId  Int      @map("class_level_id")
+  name          String   // e.g., "WAEC Standard" or "Lower Primary Scale"
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  examSession   ExamSession      @relation(fields: [examSessionId], references: [id])
+  boundaries    GradeBoundary[]
+
+  @@map("grading_scales")
+}
+
+model GradeBoundary {
+  id             Int      @id @default(autoincrement())
+  gradingScaleId Int      @map("grading_scale_id")
+  minScore       Decimal  @map("min_score") @db.Decimal(5, 2)
+  maxScore       Decimal  @map("max_score") @db.Decimal(5, 2)
+  grade          String   // A, B, C...
+  gradePoint     Decimal? @map("grade_point") @db.Decimal(3, 2) // 4.0, 5.0 scale
+  remark         String?
+  orderIndex     Int      @map("order_index")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  scale          GradingScale @relation(fields: [gradingScaleId], references: [id])
+
+  @@map("grade_boundaries")
+}
+
+// --- SKILLS & BEHAVIORAL LAYER ---
+
+model SkillCategory {
+  id         Int      @id @default(autoincrement())
+  name       String   // e.g., "Affective Domain", "Psychomotor Skills"
+  orderIndex Int      @map("order_index")
+  items      SkillItem[]
+
+  @@map("skill_categories")
+}
+
+model SkillItem {
+  id              Int      @id @default(autoincrement())
+  skillCategoryId Int      @map("skill_category_id")
+  name            String   // e.g., "Punctuality", "Honesty", "Drawing"
+  maxScore        Decimal? @map("max_score") @db.Decimal(5, 2)
+  orderIndex      Int      @map("order_index")
+
+  category        SkillCategory @relation(fields: [skillCategoryId], references: [id])
+  assessments     StudentSkillAssessment[]
+
+  @@map("skill_items")
+}
+
+model StudentSkillAssessment {
+  id            Int      @id @default(autoincrement())
+  resultSheetId Int      @map("result_sheet_id")
+  studentId     Int      @map("student_id")
+  skillItemId   Int      @map("skill_item_id")
+  
+  score         Decimal? @db.Decimal(5, 2)
+  grade         String?
+  remark        String?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  resultSheet   ResultSheet @relation(fields: [resultSheetId], references: [id])
+  skillItem     SkillItem   @relation(fields: [skillItemId], references: [id])
+
+  @@unique([resultSheetId, studentId, skillItemId])
+  @@map("student_skill_assessments")
+}
+
+model StudentResultSummary {
+  id            Int      @id @default(autoincrement())
+  resultSheetId Int      @map("result_sheet_id")
+  studentId     Int      @map("student_id")
+  
+  totalScore    Decimal  @db.Decimal(10, 2)
+  average       Decimal  @db.Decimal(5, 2)
+  gpa           Decimal? @db.Decimal(4, 2)
+  
+  positionInArm   Int?   @map("position_in_arm")
+  positionInLevel Int?   @map("position_in_level")
+  totalSubjects   Int    @map("total_subjects")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  resultSheet   ResultSheet @relation(fields: [resultSheetId], references: [id])
+  // student       Student     @relation(fields: [studentId], references: [id]) 
+  // (Uncomment above once Student model is ready)
+
+  @@unique([resultSheetId, studentId])
+  @@map("student_result_summaries")
+}
+
+model StudentCumulativeSummary {
+  id            Int      @id @default(autoincrement())
+  resultSheetId Int      @map("result_sheet_id") // Usually an ANNUAL sheet
+  studentId     Int      @map("student_id")
+  
+  cumulativeTotal   Decimal  @map("cumulative_total") @db.Decimal(10, 2)
+  cumulativeAverage Decimal  @map("cumulative_average") @db.Decimal(5, 2)
+  cumulativeGpa     Decimal? @map("cumulative_gpa") @db.Decimal(4, 2)
+  
+  promotionStatus   String?  @map("promotion_status") // PROMOTED, PROMOTED_ON_TRIAL, REPEATED
+  positionInLevel   Int?     @map("position_in_level")
+  
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  resultSheet   ResultSheet @relation(fields: [resultSheetId], references: [id])
+
+  @@unique([resultSheetId, studentId])
+  @@map("student_cumulative_summaries")
 }
