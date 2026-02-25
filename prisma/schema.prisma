@@ -573,8 +573,9 @@ model ResultSheet {
   classLevelId      Int      @map("class_level_id")
   classArmId        Int?     @map("class_arm_id")
   
-  type              String   // TERM, ANNUAL, CUSTOM
-  status            String   @default("DRAFT") // DRAFT, PROCESSING, PUBLISHED
+  type          ResultSheetType
+  status        ResultSheetStatus @default(DRAFT)
+  
   publishedAt       DateTime? @map("published_at")
   createdAt         DateTime  @default(now()) @map("created_at")
 
