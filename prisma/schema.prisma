@@ -368,7 +368,8 @@ model ClassLevel {
 
   @@unique([schoolId, levelOrder])
   @@map("class_levels")
-  examSessions ExamSession[]
+  scoreDivisionConfigs ScoreDivisionConfig[]
+  examSessionClassLevels ExamSessionClassLevel[]
 }
 
 model ClassArm {
@@ -389,7 +390,6 @@ model ClassArm {
 
   @@unique([classLevelId, name])
   @@map("class_arms")
-  examSessions ExamSession[]
 }
 
 model Enrollment {
@@ -483,17 +483,16 @@ model AttendanceRecord {
 
 
 // --- ASSESSMENT LAYER ---
+// --- ASSESSMENT LAYER (UPDATED) ---
 
 model ExamSession {
   id                Int      @id @default(autoincrement())
   academicSessionId Int      @map("academic_session_id")
   termId            Int      @map("term_id")
-  classLevelId      Int      @map("class_level_id")
-  classArmId        Int?     @map("class_arm_id") // NULL = Entire Level
   
   title             String
-  examType      ExamType    @map("exam_type")
-  status        ExamStatus  @default(DRAFT)
+  examType          ExamType    @map("exam_type")
+  status            ExamStatus  @default(DRAFT)
   
   openedAt          DateTime? @map("opened_at")
   lockedAt          DateTime? @map("locked_at")
@@ -503,8 +502,9 @@ model ExamSession {
   // Relations
   academicSession   AcademicSession @relation(fields: [academicSessionId], references: [id])
   term              Term            @relation(fields: [termId], references: [id])
-  classLevel        ClassLevel      @relation(fields: [classLevelId], references: [id])
-  classArm          ClassArm?       @relation(fields: [classArmId], references: [id])
+  
+  // New Join Table for school-wide but level-specific participation
+  participatingLevels ExamSessionClassLevel[]
   
   scoreConfigs      ScoreDivisionConfig[]
   subjectScores     StudentSubjectScore[]
@@ -514,18 +514,32 @@ model ExamSession {
   @@map("exam_sessions")
 }
 
-model ScoreDivisionConfig {
+model ExamSessionClassLevel {
   id            Int      @id @default(autoincrement())
   examSessionId Int      @map("exam_session_id")
   classLevelId  Int      @map("class_level_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  examSession   ExamSession @relation(fields: [examSessionId], references: [id])
+  classLevel    ClassLevel  @relation(fields: [classLevelId], references: [id])
+
+  @@unique([examSessionId, classLevelId])
+  @@map("exam_session_class_levels")
+}
+
+model ScoreDivisionConfig {
+  id            Int      @id @default(autoincrement())
+  examSessionId Int      @map("exam_session_id")
+  classLevelId  Int      @map("class_level_id") // Divisions can still vary by level
   
-  name          String   // e.g., "1st CA"
+  name          String   
   maxScore      Decimal  @map("max_score") @db.Decimal(5, 2)
   weight        Decimal? @db.Decimal(5, 2)
   orderIndex    Int      @map("order_index")
   createdAt     DateTime @default(now()) @map("created_at")
 
   examSession   ExamSession @relation(fields: [examSessionId], references: [id])
+  classLevel    ClassLevel  @relation(fields: [classLevelId], references: [id])
   studentDivisions StudentScoreDivision[]
 
   @@map("score_division_configs")
@@ -549,6 +563,7 @@ model StudentSubjectScore {
   @@unique([examSessionId, studentId, subjectId])
   @@map("student_subject_scores")
 }
+
 
 model StudentScoreDivision {
   id                     Int      @id @default(autoincrement())
