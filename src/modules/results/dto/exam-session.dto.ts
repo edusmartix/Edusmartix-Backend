@@ -19,6 +19,14 @@ export class ScoreDivisionDto {
   maxScore: number; // e.g., 20
 }
 
+// Used for the dedicated level config endpoint
+export class SetLevelDivisionsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => ScoreDivisionDto)
+  divisions: ScoreDivisionDto[];
+}
+
 export class CreateExamSessionDto {
   @IsString()
   title: string;
@@ -28,10 +36,5 @@ export class CreateExamSessionDto {
 
   @IsArray()
   @IsInt({ each: true })
-  classLevelIds: number[]; // Array of levels participating in this exam
-
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ScoreDivisionDto)
-  divisions: ScoreDivisionDto[];
+  classLevelIds: number[];
 }

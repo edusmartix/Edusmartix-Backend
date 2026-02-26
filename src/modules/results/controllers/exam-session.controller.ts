@@ -14,7 +14,10 @@ import { Roles } from '../../../core/common/decorators/roles.decorators';
 import { ExamStatus, StaffRole, UserRole } from '@prisma/client';
 import { StaffRoles } from 'src/core/common/decorators/staff-roles.decorator';
 import { ExamSessionService } from '../services/exam-session.service';
-import { CreateExamSessionDto } from '../dto/exam-session.dto';
+import {
+  CreateExamSessionDto,
+  SetLevelDivisionsDto,
+} from '../dto/exam-session.dto';
 
 @Controller('results/sessions')
 @UseGuards(AuthGuard, PermissionsGuard)
@@ -28,6 +31,18 @@ export class ExamSessionController {
     return this.examService.createSession(req.schoolId, dto);
   }
 
+  // NEW: Endpoint to set divisions for a specific level
+  @Post(':id/levels/:levelId/divisions')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  @StaffRoles(StaffRole.ADMIN)
+  async setLevelDivisions(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('levelId', ParseIntPipe) levelId: number,
+    @Body() dto: SetLevelDivisionsDto,
+  ) {
+    return this.examService.setLevelDivisions(id, levelId, dto.divisions);
+  }
+
   @Patch(':id/status')
   @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
   @StaffRoles(StaffRole.ADMIN)
@@ -35,7 +50,6 @@ export class ExamSessionController {
     @Param('id', ParseIntPipe) id: number,
     @Body('status') status: ExamStatus,
   ) {
-    // We'll add status transition logic in the service (e.g., can't publish if DRAFT)
     return this.examService.updateSessionStatus(id, status);
   }
 }
