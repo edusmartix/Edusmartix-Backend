@@ -6,7 +6,10 @@ import {
 import { ExamRepository } from '../repositories/exam.repository';
 import { AcademicSessionService } from 'src/modules/academic/services/academic-session.service';
 import { ExamStatus } from '@prisma/client';
-import { CreateExamSessionDto } from '../dto/exam-session.dto';
+import {
+  CreateExamSessionDto,
+  ScoreDivisionDto,
+} from '../dto/exam-session.dto';
 
 @Injectable()
 export class ExamSessionService {
@@ -16,76 +19,63 @@ export class ExamSessionService {
   ) {}
 
   async createSession(schoolId: number, dto: CreateExamSessionDto) {
-    // 1. Validate Academic Context
     const currentSession =
       await this.academicService.getCurrentSession(schoolId);
     const activeTerm = await this.academicService.getActiveTerm(schoolId);
 
-    // 2. Create the Session
-    const session = await this.examRepo.createExamSession({
-      academicSessionId: currentSession.id,
-      termId: activeTerm.id,
-      classLevelId: dto.classLevelId,
-      classArmId: dto.classArmId,
-      title: dto.title,
-      examType: dto.examType,
-    });
-
-    // 3. Initialize default Score Divisions if provided
-    if (dto.divisions && dto.divisions.length > 0) {
-      const configs = dto.divisions.map((d, index) => ({
-        examSessionId: session.id,
-        classLevelId: dto.classLevelId,
-        name: d.name,
-        maxScore: d.maxScore,
-        orderIndex: index,
-      }));
-      await this.examRepo.addScoreDivisionConfigs(configs);
-    }
-
-    return this.examRepo.findSessionById(session.id);
+    // Creates the Session and the participating level links
+    return this.examRepo.createExamSession(
+      {
+        academicSessionId: currentSession.id,
+        termId: activeTerm.id,
+        title: dto.title,
+        examType: dto.examType,
+      },
+      dto.classLevelIds,
+    );
   }
 
+  async setLevelDivisions(
+    sessionId: number,
+    levelId: number,
+    divisions: ScoreDivisionDto[],
+  ) {
+    // 1. Calculate Total
+    const total = divisions.reduce((sum, d) => sum + d.maxScore, 0);
+    if (total !== 100) {
+      throw new BadRequestException(
+        `Total max score must be exactly 100. Current total: ${total}`,
+      );
+    }
+
+    // 2. Clear existing (if any) and set new configs for this specific level
+    return this.examRepo.syncLevelDivisions(sessionId, levelId, divisions);
+  }
+
+  // updateSessionStatus remains the same as your state machine logic
+  // is already solid and works regardless of class-specific or school-wide.
   async updateSessionStatus(sessionId: number, newStatus: ExamStatus) {
     const session = await this.examRepo.findSessionById(sessionId);
     if (!session) throw new NotFoundException('Exam Session not found');
 
     const currentStatus = session.status;
 
-    // Transition Logic
     switch (newStatus) {
       case ExamStatus.OPEN:
-        // You can only open a Draft
-        if (currentStatus !== ExamStatus.DRAFT) {
-          throw new BadRequestException(
-            'Only DRAFT sessions can be opened for entry',
-          );
-        }
+        if (currentStatus !== ExamStatus.DRAFT)
+          throw new BadRequestException('Only DRAFT sessions can be opened');
         break;
-
       case ExamStatus.LOCKED:
-        // You can only lock an Open session (stops teachers from editing)
-        if (currentStatus !== ExamStatus.OPEN) {
+        if (currentStatus !== ExamStatus.OPEN)
           throw new BadRequestException('Only OPEN sessions can be locked');
-        }
         break;
-
       case ExamStatus.PUBLISHED:
-        // You can only publish if it was previously locked (final review done)
-        if (currentStatus !== ExamStatus.LOCKED) {
-          throw new BadRequestException(
-            'Session must be LOCKED before publishing to parents',
-          );
-        }
+        if (currentStatus !== ExamStatus.LOCKED)
+          throw new BadRequestException('Must be LOCKED before publishing');
         break;
-
       case ExamStatus.DRAFT:
-        // Reverting to draft (Admin Reset)
-        if (currentStatus === ExamStatus.PUBLISHED) {
-          throw new BadRequestException(
-            'Cannot revert to DRAFT once published. Unpublish first.',
-          );
-        }
+        if (currentStatus === ExamStatus.PUBLISHED)
+          throw new BadRequestException('Unpublish before reverting to DRAFT');
         break;
     }
 

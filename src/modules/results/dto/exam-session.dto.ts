@@ -2,7 +2,6 @@ import { ExamType } from '@prisma/client';
 import {
   IsEnum,
   IsInt,
-  IsOptional,
   IsString,
   IsArray,
   ValidateNested,
@@ -22,17 +21,14 @@ export class ScoreDivisionDto {
 
 export class CreateExamSessionDto {
   @IsString()
-  title: string; // e.g., "First Term Mid-Term Assessment"
+  title: string;
 
   @IsEnum(ExamType)
   examType: ExamType;
 
-  @IsInt()
-  classLevelId: number;
-
-  @IsInt()
-  @IsOptional()
-  classArmId?: number; // Optional: If NULL, applies to the whole level
+  @IsArray()
+  @IsInt({ each: true })
+  classLevelIds: number[]; // Array of levels participating in this exam
 
   @IsArray()
   @ValidateNested({ each: true })
