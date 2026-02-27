@@ -23,8 +23,8 @@ export class ExamSessionService {
       await this.academicService.getCurrentSession(schoolId);
     const activeTerm = await this.academicService.getActiveTerm(schoolId);
 
-    // Creates the Session and the participating level links
-    return this.examRepo.createExamSession(
+    // The repository now handles creating levels AND default 10/30/60 configs
+    const session = await this.examRepo.createExamSession(
       {
         academicSessionId: currentSession.id,
         termId: activeTerm.id,
@@ -33,6 +33,8 @@ export class ExamSessionService {
       },
       dto.classLevelIds,
     );
+
+    return this.examRepo.findSessionById(session.id);
   }
 
   async setLevelDivisions(
@@ -40,11 +42,27 @@ export class ExamSessionService {
     levelId: number,
     divisions: ScoreDivisionDto[],
   ) {
-    // 1. Calculate Total
+    // 1. Validate that the Exam Session exists
+    const session = await this.examRepo.findSessionById(sessionId);
+    if (!session) throw new NotFoundException('Exam Session not found');
+
+    // 2. Validate that this Class Level is actually part of this session
+    // This prevents setting scores for a level that isn't participating
+    const isParticipating = await this.examRepo.isLevelInSession(
+      sessionId,
+      levelId,
+    );
+    if (!isParticipating) {
+      throw new BadRequestException(
+        'This class level is not part of this exam session',
+      );
+    }
+
+    // 3. Calculate Total (Must be 100)
     const total = divisions.reduce((sum, d) => sum + d.maxScore, 0);
     if (total !== 100) {
       throw new BadRequestException(
-        `Total max score must be exactly 100. Current total: ${total}`,
+        `Total max score must be 100. Current: ${total}`,
       );
     }
 

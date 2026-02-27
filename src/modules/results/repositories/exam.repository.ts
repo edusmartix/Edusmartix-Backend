@@ -8,13 +8,43 @@ export class ExamRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async createExamSession(data: any, levelIds: number[]) {
-    return this.prisma.examSession.create({
-      data: {
-        ...data,
-        participatingLevels: {
-          create: levelIds.map((id) => ({ classLevelId: id })),
+    const defaultDivisions = [
+      { name: '1st CA', maxScore: 10 },
+      { name: '2nd CA', maxScore: 30 },
+      { name: 'Exam', maxScore: 60 },
+    ];
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create the main Exam Session
+      const session = await tx.examSession.create({
+        data: {
+          ...data,
+          participatingLevels: {
+            create: levelIds.map((id) => ({ classLevelId: id })),
+          },
         },
-      },
+      });
+
+      // 2. Map default divisions to every participating level
+      const configs: Prisma.ScoreDivisionConfigCreateManyInput[] = [];
+      for (const levelId of levelIds) {
+        defaultDivisions.forEach((div, index) => {
+          configs.push({
+            examSessionId: session.id,
+            classLevelId: levelId,
+            name: div.name,
+            maxScore: div.maxScore,
+            orderIndex: index,
+          });
+        });
+      }
+
+      // 3. Bulk insert the configurations
+      await tx.scoreDivisionConfig.createMany({
+        data: configs,
+      });
+
+      return session;
     });
   }
 
@@ -70,5 +100,15 @@ export class ExamRepository {
         })),
       });
     });
+  }
+
+  async isLevelInSession(sessionId: number, levelId: number): Promise<boolean> {
+    const count = await this.prisma.examSessionClassLevel.count({
+      where: {
+        examSessionId: sessionId,
+        classLevelId: levelId,
+      },
+    });
+    return count > 0;
   }
 }
