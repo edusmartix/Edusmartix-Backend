@@ -483,7 +483,6 @@ model AttendanceRecord {
 
 
 // --- ASSESSMENT LAYER ---
-// --- ASSESSMENT LAYER (UPDATED) ---
 
 model ExamSession {
   id                Int      @id @default(autoincrement())
