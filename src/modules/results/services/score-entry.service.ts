@@ -7,37 +7,38 @@ import { ExamRepository } from '../repositories/exam.repository';
 import { ExamStatus } from '@prisma/client';
 import { BulkScoreEntryDto } from '../dto/score-entry.dto';
 import { ScoreRepository } from '../repositories/score-entry.repository';
+import { PrismaService } from 'src/core/prisma/prisma.service';
 
 @Injectable()
 export class ScoreEntryService {
   constructor(
     private readonly scoreRepo: ScoreRepository,
     private readonly examRepo: ExamRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async recordScores(dto: BulkScoreEntryDto) {
     const session = await this.examRepo.findSessionById(dto.examSessionId);
     if (!session) throw new NotFoundException('Exam Session not found');
-
     if (session.status !== ExamStatus.OPEN) {
       throw new BadRequestException(
-        `Score entry is not allowed. Status: ${session.status}`,
+        `Score entry locked. Status: ${session.status}`,
       );
     }
 
-    const firstStudentId = dto.scores[0]?.studentId;
-    if (!firstStudentId)
-      throw new BadRequestException('No student data provided');
+    // 1. Get metadata from the first enrollment to validate the subject
+    const firstEnrollmentId = dto.scores[0]?.enrollmentId;
+    if (!firstEnrollmentId)
+      throw new BadRequestException('No score data provided');
 
-    // Find enrollment to get the classArmId
-    const enrollment = await this.scoreRepo.findEnrollment(
-      firstStudentId,
-      session.academicSessionId,
-    );
-    if (!enrollment)
-      throw new BadRequestException('Student not enrolled in this session');
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: firstEnrollmentId },
+      select: { classArmId: true },
+    });
 
-    // Validate Subject Mapping
+    if (!enrollment) throw new BadRequestException('Invalid enrollment ID');
+
+    // 2. Validate Subject Mapping
     const isSubjectValid = await this.scoreRepo.validateClassSubject(
       dto.subjectId,
       enrollment.classArmId,
@@ -50,9 +51,9 @@ export class ScoreEntryService {
       );
     }
 
+    // 3. Save Bulk Scores
     return this.scoreRepo.saveBulkScores(
       dto.examSessionId,
-      session.academicSessionId,
       dto.subjectId,
       dto.scores,
     );

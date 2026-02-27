@@ -9,7 +9,6 @@ export class ScoreRepository {
 
   async saveBulkScores(
     sessionId: number,
-    academicSessionId: number,
     subjectId: number,
     data: StudentSubjectScoreDto[],
   ) {
@@ -17,28 +16,17 @@ export class ScoreRepository {
       const results: StudentSubjectScore[] = [];
 
       for (const entry of data) {
-        // Find the specific enrollment for this student in this academic session
-        const enrollment = await tx.enrollment.findUnique({
-          where: {
-            studentId_academicSessionId: {
-              studentId: entry.studentId,
-              academicSessionId,
-            },
-          },
-        });
-
-        if (!enrollment) continue; // Or throw error based on preference
-
+        // Calculate total: 0 if absent, else sum of divisions
         const totalScore = entry.isAbsent
           ? 0
           : entry.divisions.reduce((sum, div) => sum + Number(div.score), 0);
 
-        // 2. Upsert using enrollmentId
+        // Direct Upsert using enrollmentId from the body
         const subjectScore = await tx.studentSubjectScore.upsert({
           where: {
             examSessionId_enrollmentId_subjectId: {
               examSessionId: sessionId,
-              enrollmentId: enrollment.id,
+              enrollmentId: entry.enrollmentId,
               subjectId: subjectId,
             },
           },
@@ -48,14 +36,14 @@ export class ScoreRepository {
           },
           create: {
             examSessionId: sessionId,
-            enrollmentId: enrollment.id,
+            enrollmentId: entry.enrollmentId,
             subjectId: subjectId,
             totalScore,
             isAbsent: entry.isAbsent ?? false,
           },
         });
 
-        // 3. Upsert divisions remains similar, now linked to subjectScore.id
+        // Upsert divisions linked to the subjectScore record
         for (const div of entry.divisions) {
           await tx.studentScoreDivision.upsert({
             where: {

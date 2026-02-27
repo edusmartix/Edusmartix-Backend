@@ -20,7 +20,7 @@ export class DivisionScoreEntryDto {
 
 export class StudentSubjectScoreDto {
   @IsInt()
-  studentId: number;
+  enrollmentId: number;
 
   @IsBoolean()
   @IsOptional()
