@@ -7,6 +7,7 @@ import {
   Patch,
   ParseIntPipe,
   Param,
+  Get,
 } from '@nestjs/common';
 import { AuthGuard } from '../../../core/guards/auth.guard';
 import { PermissionsGuard } from '../../../core/guards/permissions.guard';
@@ -51,5 +52,31 @@ export class ExamSessionController {
     @Body('status') status: ExamStatus,
   ) {
     return this.examService.updateSessionStatus(id, status);
+  }
+
+  // --- GET ENDPOINTS ---
+
+  @Get()
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getAllSessions(@Req() req) {
+    // Lists all sessions for the school, useful for a central table
+    return this.examService.findAll(req.schoolId);
+  }
+
+  @Get(':id')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getSessionDetails(@Param('id', ParseIntPipe) id: number) {
+    // Get a specific session, including its levels and score configs
+    return this.examService.getSessionWithConfigs(id);
+  }
+
+  @Get(':id/levels/:levelId/config')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getLevelConfig(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('levelId', ParseIntPipe) levelId: number,
+  ) {
+    // Specific config for a class level (Used by the HOD to check the rules)
+    return this.examService.getLevelDivisions(id, levelId);
   }
 }

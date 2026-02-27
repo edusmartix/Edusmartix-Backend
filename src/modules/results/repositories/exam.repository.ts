@@ -111,4 +111,33 @@ export class ExamRepository {
     });
     return count > 0;
   }
+
+  async findAll(schoolId: number) {
+    return this.prisma.examSession.findMany({
+      where: { academicSession: { schoolId } }, // Ensure your session model relates to school
+      include: {
+        term: true,
+        participatingLevels: { include: { classLevel: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getSessionWithConfigs(sessionId: number) {
+    return this.prisma.examSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        participatingLevels: { include: { classLevel: true } },
+        scoreConfigs: { orderBy: { orderIndex: 'asc' } },
+        term: true,
+      },
+    });
+  }
+
+  async getLevelDivisions(sessionId: number, levelId: number) {
+    return this.prisma.scoreDivisionConfig.findMany({
+      where: { examSessionId: sessionId, classLevelId: levelId },
+      orderBy: { orderIndex: 'asc' },
+    });
+  }
 }

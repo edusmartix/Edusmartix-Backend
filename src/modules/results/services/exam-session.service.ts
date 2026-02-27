@@ -106,4 +106,23 @@ export class ExamSessionService {
 
     return this.examRepo.updateSessionStatus(sessionId, newStatus);
   }
+
+  // --- QUERIES (READ OPERATIONS) ---
+
+  async findAll(schoolId: number) {
+    return this.examRepo.findAll(schoolId);
+  }
+
+  async getSessionWithConfigs(sessionId: number) {
+    const session = await this.examRepo.getSessionWithConfigs(sessionId);
+    if (!session) throw new NotFoundException('Exam Session not found');
+    return session;
+  }
+
+  async getLevelDivisions(sessionId: number, levelId: number) {
+    const divisions = await this.examRepo.getLevelDivisions(sessionId, levelId);
+
+    // If empty, return an empty array so frontend can handle it
+    return divisions || [];
+  }
 }
