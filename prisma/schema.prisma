@@ -407,6 +407,7 @@ model Enrollment {
 
   @@unique([studentId, academicSessionId])
   @@map("enrollments")
+  studentSubjectScores StudentSubjectScore[]
 }
 
 // ==========================
@@ -547,7 +548,6 @@ model ScoreDivisionConfig {
 model StudentSubjectScore {
   id            Int      @id @default(autoincrement())
   examSessionId Int      @map("exam_session_id")
-  studentId     Int      @map("student_id")
   subjectId     Int      @map("subject_id")
   
   totalScore    Decimal  @map("total_score") @db.Decimal(5, 2)
@@ -556,10 +556,13 @@ model StudentSubjectScore {
   isAbsent      Boolean  @default(false) @map("is_absent")
   createdAt     DateTime @default(now()) @map("created_at")
 
+  enrollmentId   Int      @map("enrollment_id")
+  enrollment     Enrollment @relation(fields: [enrollmentId], references: [id])
+
   examSession   ExamSession @relation(fields: [examSessionId], references: [id])
   divisions     StudentScoreDivision[]
 
-  @@unique([examSessionId, studentId, subjectId])
+  @@unique([examSessionId, enrollmentId, subjectId])
   @@map("student_subject_scores")
 }
 

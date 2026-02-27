@@ -9,6 +9,7 @@ export class ScoreRepository {
 
   async saveBulkScores(
     sessionId: number,
+    academicSessionId: number,
     subjectId: number,
     data: StudentSubjectScoreDto[],
   ) {
@@ -16,35 +17,45 @@ export class ScoreRepository {
       const results: StudentSubjectScore[] = [];
 
       for (const entry of data) {
-        // 1. Calculate total from divisions
-        const totalScore = entry.divisions.reduce(
-          (sum, div) => sum + Number(div.score),
-          0,
-        );
+        // Find the specific enrollment for this student in this academic session
+        const enrollment = await tx.enrollment.findUnique({
+          where: {
+            studentId_academicSessionId: {
+              studentId: entry.studentId,
+              academicSessionId,
+            },
+          },
+        });
 
-        // 2. Upsert the Header
+        if (!enrollment) continue; // Or throw error based on preference
+
+        const totalScore = entry.isAbsent
+          ? 0
+          : entry.divisions.reduce((sum, div) => sum + Number(div.score), 0);
+
+        // 2. Upsert using enrollmentId
         const subjectScore = await tx.studentSubjectScore.upsert({
           where: {
-            examSessionId_studentId_subjectId: {
+            examSessionId_enrollmentId_subjectId: {
               examSessionId: sessionId,
-              studentId: entry.studentId,
+              enrollmentId: enrollment.id,
               subjectId: subjectId,
             },
           },
           update: {
-            totalScore: totalScore,
+            totalScore,
             isAbsent: entry.isAbsent ?? false,
           },
           create: {
             examSessionId: sessionId,
-            studentId: entry.studentId,
+            enrollmentId: enrollment.id,
             subjectId: subjectId,
-            totalScore: totalScore,
+            totalScore,
             isAbsent: entry.isAbsent ?? false,
           },
         });
 
-        // 3. Upsert specific divisions (CA1, CA2, Exam)
+        // 3. Upsert divisions remains similar, now linked to subjectScore.id
         for (const div of entry.divisions) {
           await tx.studentScoreDivision.upsert({
             where: {
@@ -65,5 +76,78 @@ export class ScoreRepository {
       }
       return results;
     });
+  }
+
+  async getScoreSheetTemplate(
+    sessionId: number,
+    classArmId: number,
+    subjectId: number,
+  ) {
+    const classArm = await this.prisma.classArm.findUnique({
+      where: { id: classArmId },
+      select: { classLevelId: true },
+    });
+
+    if (!classArm) return null;
+
+    // Fetch enrollments instead of just students
+    const [enrollments, configs, existingScores] = await Promise.all([
+      this.prisma.enrollment.findMany({
+        where: { classArmId, enrollmentStatus: 'ACTIVE' },
+        include: {
+          student: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              admissionNo: true,
+            },
+          },
+        },
+        orderBy: { student: { lastName: 'asc' } },
+      }),
+      this.prisma.scoreDivisionConfig.findMany({
+        where: {
+          examSessionId: sessionId,
+          classLevelId: classArm.classLevelId,
+        },
+        orderBy: { orderIndex: 'asc' },
+      }),
+      this.prisma.studentSubjectScore.findMany({
+        where: { examSessionId: sessionId, subjectId: subjectId },
+        include: { divisions: true },
+      }),
+    ]);
+
+    return { enrollments, configs, existingScores };
+  }
+
+  async findEnrollment(studentId: number, academicSessionId: number) {
+    return this.prisma.enrollment.findUnique({
+      where: {
+        studentId_academicSessionId: {
+          studentId,
+          academicSessionId,
+        },
+      },
+    });
+  }
+
+  async validateClassSubject(
+    subjectId: number,
+    classArmId: number,
+    academicSessionId: number,
+  ) {
+    const mapping = await this.prisma.classSubject.findUnique({
+      where: {
+        subjectId_classArmId_academicSessionId: {
+          subjectId,
+          classArmId,
+          academicSessionId,
+        },
+      },
+    });
+
+    return !!mapping; // Returns true if it exists, false otherwise
   }
 }

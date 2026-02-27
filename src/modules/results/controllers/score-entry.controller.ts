@@ -1,4 +1,12 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Get,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { AuthGuard } from '../../../core/guards/auth.guard';
 import { PermissionsGuard } from '../../../core/guards/permissions.guard';
 import { Roles } from '../../../core/common/decorators/roles.decorators';
@@ -17,5 +25,16 @@ export class ScoreEntryController {
   @StaffRoles(StaffRole.TEACHER, StaffRole.ADMIN)
   async recordBulkScores(@Body() dto: BulkScoreEntryDto) {
     return this.scoreService.recordScores(dto);
+  }
+
+  @Get('sheet/:sessionId/:classArmId/:subjectId')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  @StaffRoles(StaffRole.TEACHER, StaffRole.ADMIN)
+  async getSheet(
+    @Param('sessionId', ParseIntPipe) sessionId: number,
+    @Param('classArmId', ParseIntPipe) classArmId: number,
+    @Param('subjectId', ParseIntPipe) subjectId: number,
+  ) {
+    return this.scoreService.getScoreSheet(sessionId, classArmId, subjectId);
   }
 }
