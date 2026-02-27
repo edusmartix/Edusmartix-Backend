@@ -13,7 +13,6 @@ export class ScoreRepository {
     data: StudentSubjectScoreDto[],
   ) {
     return this.prisma.$transaction(async (tx) => {
-      // FIX: Explicitly type the array to avoid 'never' error
       const results: StudentSubjectScore[] = [];
 
       for (const entry of data) {
