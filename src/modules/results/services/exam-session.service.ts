@@ -46,6 +46,13 @@ export class ExamSessionService {
     const session = await this.examRepo.findSessionById(sessionId);
     if (!session) throw new NotFoundException('Exam Session not found');
 
+    // 1.b Integrity Guard: Don't allow structural changes if scores might exist
+    if (session.status !== ExamStatus.DRAFT) {
+      throw new BadRequestException(
+        'Cannot reconfigure divisions once the session is out of DRAFT. Please revert to DRAFT first.',
+      );
+    }
+
     // 2. Validate that this Class Level is actually part of this session
     // This prevents setting scores for a level that isn't participating
     const isParticipating = await this.examRepo.isLevelInSession(
