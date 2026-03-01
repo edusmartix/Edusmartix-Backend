@@ -27,7 +27,7 @@ export class ScoreEntryController {
     return this.scoreService.recordScores(dto);
   }
 
-  @Get('sheet/:sessionId/:classArmId/:subjectId')
+  @Get('sheet/exam-session/:sessionId/class-arm/:classArmId/subject/:subjectId')
   @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
   @StaffRoles(StaffRole.TEACHER, StaffRole.ADMIN)
   async getSheet(

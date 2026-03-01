@@ -59,6 +59,8 @@ export class ScoreEntryService {
     );
   }
 
+  // results/services/score-entry.service.ts
+
   async getScoreSheet(
     sessionId: number,
     classArmId: number,
@@ -69,36 +71,46 @@ export class ScoreEntryService {
       classArmId,
       subjectId,
     );
-    if (!data) throw new NotFoundException('Data not found');
+    if (!data)
+      throw new NotFoundException('Score sheet data could not be generated');
 
     const { enrollments, configs, existingScores } = data;
 
     const sheet = enrollments.map((enrollment) => {
+      // Find if a score record already exists for this student
       const scoreRecord = existingScores.find(
         (s) => s.enrollmentId === enrollment.id,
       );
 
       return {
-        studentId: enrollment.student.id,
-        enrollmentId: enrollment.id, // Now included for clarity
+        enrollmentId: enrollment.id,
         name: `${enrollment.student.lastName} ${enrollment.student.firstName}`,
         admissionNumber: enrollment.student.admissionNo,
         isAbsent: scoreRecord?.isAbsent ?? false,
         totalScore: scoreRecord?.totalScore ?? 0,
-        scores: configs.map((config) => {
+
+        /** * We map configs to scores so the frontend always has a
+         * placeholder for every division (CA1, CA2, Exam)
+         */
+        divisions: configs.map((config) => {
           const divScore = scoreRecord?.divisions.find(
             (d) => d.scoreDivisionConfigId === config.id,
           );
           return {
-            configId: config.id,
-            configName: config.name,
-            maxScore: config.maxScore,
-            currentScore: divScore?.score ?? null,
+            scoreDivisionConfigId: config.id, // Match Dto key name
+            name: config.name, // For UI labeling
+            maxScore: config.maxScore, // For UI validation
+            score: divScore?.score ?? 0, // Default to 0
           };
         }),
       };
     });
 
-    return { configs, sheet };
+    return {
+      examSessionId: sessionId,
+      subjectId: subjectId,
+      configs,
+      sheet,
+    };
   }
 }

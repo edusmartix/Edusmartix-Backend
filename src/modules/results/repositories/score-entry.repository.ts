@@ -19,7 +19,13 @@ export class ScoreRepository {
         // Calculate total: 0 if absent, else sum of divisions
         const totalScore = entry.isAbsent
           ? 0
-          : entry.divisions.reduce((sum, div) => sum + Number(div.score), 0);
+          : entry.divisions.reduce((sum, div) => {
+              const val =
+                typeof div.score === 'string'
+                  ? parseFloat(div.score)
+                  : Number(div.score);
+              return sum + (isNaN(val) ? 0 : val);
+            }, 0);
 
         // Direct Upsert using enrollmentId from the body
         const subjectScore = await tx.studentSubjectScore.upsert({
