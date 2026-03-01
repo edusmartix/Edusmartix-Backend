@@ -11,6 +11,8 @@ import { AuthGuard } from '../../../core/guards/auth.guard';
 import { PermissionsGuard } from '../../../core/guards/permissions.guard';
 import { Roles } from '../../../core/common/decorators/roles.decorators';
 import { UserRole } from '@prisma/client';
+import { UpdateGradingDto } from '../dto/grading.dto';
+import { AdminGradingService } from '../services/grading.service';
 
 @Controller('admin/grading')
 @UseGuards(AuthGuard, PermissionsGuard)
