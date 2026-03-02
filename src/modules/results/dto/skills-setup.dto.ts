@@ -5,40 +5,49 @@ import {
   IsOptional,
   ValidateNested,
   Min,
+  IsNumber,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CreateSkillItemDto {
+export class SkillItemDto {
   @IsString()
   name: string;
 
   @IsOptional()
-  @IsInt()
+  @IsNumber()
+  @Min(0)
   maxScore?: number;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   orderIndex: number;
 }
 
-export class CreateSkillCategoryDto {
-  @IsInt()
-  classLevelId: number;
-
+export class SkillCategoryDto {
   @IsString()
   name: string;
 
   @IsInt()
-  @Min(0)
+  @Min(1)
   orderIndex: number;
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => CreateSkillItemDto)
-  items: CreateSkillItemDto[];
+  @Type(() => SkillItemDto)
+  items: SkillItemDto[];
+}
+
+export class UpdateSkillLevelDto {
+  @IsInt()
+  classLevelId: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SkillCategoryDto)
+  categories: SkillCategoryDto[];
 
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
-  targetClassLevelIds?: number[]; // The "Clone" feature
+  targetClassLevelIds?: number[];
 }
