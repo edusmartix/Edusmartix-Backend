@@ -408,6 +408,7 @@ model Enrollment {
   @@unique([studentId, academicSessionId])
   @@map("enrollments")
   studentSubjectScores StudentSubjectScore[]
+  studentSkillAssessments StudentSkillAssessment[]
 }
 
 // ==========================
@@ -676,7 +677,6 @@ model SkillItem {
 model StudentSkillAssessment {
   id            Int      @id @default(autoincrement())
   resultSheetId Int      @map("result_sheet_id")
-  studentId     Int      @map("student_id")
   skillItemId   Int      @map("skill_item_id")
   
   score         Decimal? @db.Decimal(5, 2)
@@ -687,7 +687,11 @@ model StudentSkillAssessment {
   resultSheet   ResultSheet @relation(fields: [resultSheetId], references: [id])
   skillItem     SkillItem   @relation(fields: [skillItemId], references: [id])
 
-  @@unique([resultSheetId, studentId, skillItemId])
+  enrollmentId  Int
+  enrollment    Enrollment @relation(fields: [enrollmentId], references: [id])
+  
+
+  @@unique([resultSheetId, enrollmentId, skillItemId])
   @@map("student_skill_assessments")
 }
 

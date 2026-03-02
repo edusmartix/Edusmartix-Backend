@@ -14,13 +14,13 @@ import { UserRole } from '@prisma/client';
 import { UpdateGradingDto } from '../dto/grading.dto';
 import { AdminGradingService } from '../services/grading.service';
 
-@Controller('admin/grading')
+@Controller('results/grading')
 @UseGuards(AuthGuard, PermissionsGuard)
 @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
 export class AdminGradingController {
   constructor(private readonly gradingService: AdminGradingService) {}
 
-  @Get(':examSessionId/:classLevelId')
+  @Get('exam-session/:examSessionId/class-level/:classLevelId')
   async getGradingScale(
     @Param('examSessionId', ParseIntPipe) sessionId: number,
     @Param('classLevelId', ParseIntPipe) levelId: number,
