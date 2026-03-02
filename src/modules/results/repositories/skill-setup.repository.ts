@@ -39,33 +39,36 @@ export class SkillSetupRepository {
 
     return this.prisma.$transaction(async (tx) => {
       for (const levelId of targetLevels) {
-        // 1. Find existing categories to clean up items
+        // 1. Wipe old data for this level
         const existingCats = await tx.skillCategory.findMany({
           where: { classLevelId: levelId },
+          select: { id: true },
         });
         const catIds = existingCats.map((c) => c.id);
 
-        // 2. Clear old data for this level
         await tx.skillItem.deleteMany({
           where: { skillCategoryId: { in: catIds } },
         });
         await tx.skillCategory.deleteMany({ where: { id: { in: catIds } } });
 
-        // 3. Re-create new categories and items
-        for (const cat of dto.categories) {
-          await tx.skillCategory.create({
+        // 2. Re-create new categories and capture their IDs
+        for (const catDto of dto.categories) {
+          const newCategory = await tx.skillCategory.create({
             data: {
               classLevelId: levelId,
-              name: cat.name,
-              orderIndex: cat.orderIndex,
-              items: {
-                create: cat.items.map((i) => ({
-                  name: i.name,
-                  maxScore: i.maxScore,
-                  orderIndex: i.orderIndex,
-                })),
-              },
+              name: catDto.name,
+              orderIndex: catDto.orderIndex,
             },
+          });
+
+          // 3. BULK INSERT all items for this category in ONE query
+          await tx.skillItem.createMany({
+            data: catDto.items.map((i) => ({
+              skillCategoryId: newCategory.id, // Link to the new ID
+              name: i.name,
+              maxScore: i.maxScore,
+              orderIndex: i.orderIndex,
+            })),
           });
         }
       }
@@ -73,12 +76,11 @@ export class SkillSetupRepository {
     });
   }
 
+  // Optimized delete
   async deleteCategory(categoryId: number) {
-    return this.prisma.$transaction([
-      this.prisma.skillItem.deleteMany({
-        where: { skillCategoryId: categoryId },
-      }),
-      this.prisma.skillCategory.delete({ where: { id: categoryId } }),
-    ]);
+    return this.prisma.$transaction(async (tx) => {
+      await tx.skillItem.deleteMany({ where: { skillCategoryId: categoryId } });
+      return tx.skillCategory.delete({ where: { id: categoryId } });
+    });
   }
 }
