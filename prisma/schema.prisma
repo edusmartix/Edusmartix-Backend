@@ -370,6 +370,7 @@ model ClassLevel {
   @@map("class_levels")
   scoreDivisionConfigs ScoreDivisionConfig[]
   examSessionClassLevels ExamSessionClassLevel[]
+  skillCategories SkillCategory[]
 }
 
 model ClassArm {
@@ -653,10 +654,13 @@ model GradeBoundary {
 // --- SKILLS & BEHAVIORAL LAYER ---
 
 model SkillCategory {
-  id         Int      @id @default(autoincrement())
-  name       String   // e.g., "Affective Domain", "Psychomotor Skills"
-  orderIndex Int      @map("order_index")
-  items      SkillItem[]
+  id           Int         @id @default(autoincrement())
+  classLevelId Int         @map("class_level_id")
+  name         String      // e.g., "Affective Domain"
+  orderIndex   Int         @map("order_index")
+  
+  classLevel   ClassLevel  @relation(fields: [classLevelId], references: [id])
+  items        SkillItem[]
 
   @@map("skill_categories")
 }
