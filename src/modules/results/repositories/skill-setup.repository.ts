@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/core/prisma/prisma.service';
 import { UpdateSkillLevelDto } from '../dto/skills-setup.dto';
+import { text } from 'node:stream/consumers';
 
 @Injectable()
 export class SkillSetupRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSkillsByLevel(classLevelId: number) {
-    return this.prisma.skillCategory.findMany({
+  async getSkillsByLevel(classLevelId: number, tx?: any) {
+    const client = tx || this.prisma;
+    return client.skillCategory.findMany({
       where: { classLevelId },
       include: { items: { orderBy: { orderIndex: 'asc' } } },
       orderBy: { orderIndex: 'asc' },
@@ -28,7 +30,7 @@ export class SkillSetupRepository {
           },
         });
       }
-      return this.getSkillsByLevel(classLevelId);
+      return this.getSkillsByLevel(classLevelId, tx);
     });
   }
 

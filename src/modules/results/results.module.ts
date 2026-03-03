@@ -9,6 +9,9 @@ import { ScoreRepository } from './repositories/score-entry.repository';
 import { GradingRepository } from './repositories/grading.repository';
 import { AdminGradingController } from './controllers/grading.controller';
 import { AdminGradingService } from './services/grading.service';
+import { AdminSkillsController } from './controllers/skills-setup.controller';
+import { SkillSetupRepository } from './repositories/skill-setup.repository';
+import { SkillSetupService } from './services/skill-setup.service';
 
 @Module({
   imports: [AcademicModule],
@@ -16,6 +19,7 @@ import { AdminGradingService } from './services/grading.service';
     ExamSessionController,
     ScoreEntryController,
     AdminGradingController,
+    AdminSkillsController,
   ],
   providers: [
     ExamSessionService,
@@ -24,6 +28,8 @@ import { AdminGradingService } from './services/grading.service';
     ScoreRepository,
     AdminGradingService,
     GradingRepository,
+    SkillSetupService,
+    SkillSetupRepository,
   ],
   exports: [
     ExamSessionService,
@@ -32,6 +38,8 @@ import { AdminGradingService } from './services/grading.service';
     ScoreRepository,
     AdminGradingService,
     GradingRepository,
+    SkillSetupService,
+    SkillSetupRepository,
   ],
 })
 export class ResultsModule {}
