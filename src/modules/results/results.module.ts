@@ -12,6 +12,9 @@ import { AdminGradingService } from './services/grading.service';
 import { AdminSkillsController } from './controllers/skills-setup.controller';
 import { SkillSetupRepository } from './repositories/skill-setup.repository';
 import { SkillSetupService } from './services/skill-setup.service';
+import { SkillAssessmentController } from './controllers/skill-assessment.controller';
+import { SkillAssessmentRepository } from './repositories/skill-assessment.repository';
+import { SkillAssessmentService } from './services/skill-assessment.service';
 
 @Module({
   imports: [AcademicModule],
@@ -20,6 +23,7 @@ import { SkillSetupService } from './services/skill-setup.service';
     ScoreEntryController,
     AdminGradingController,
     AdminSkillsController,
+    SkillAssessmentController,
   ],
   providers: [
     ExamSessionService,
@@ -30,6 +34,8 @@ import { SkillSetupService } from './services/skill-setup.service';
     GradingRepository,
     SkillSetupService,
     SkillSetupRepository,
+    SkillAssessmentRepository,
+    SkillAssessmentService,
   ],
   exports: [
     ExamSessionService,
@@ -40,6 +46,8 @@ import { SkillSetupService } from './services/skill-setup.service';
     GradingRepository,
     SkillSetupService,
     SkillSetupRepository,
+    SkillAssessmentRepository,
+    SkillAssessmentService,
   ],
 })
 export class ResultsModule {}
