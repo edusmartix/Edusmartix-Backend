@@ -9,15 +9,14 @@ import {
 } from '@nestjs/common';
 import { SkillAssessmentService } from '../services/skill-assessment.service';
 import { BulkSkillAssessmentDto } from '../dto/skill-assessment.dto';
+import { PermissionsGuard } from 'src/core/guards/permissions.guard';
+import { AuthGuard } from 'src/core/guards/auth.guard';
 
 @Controller('teacher/skill-assessment')
-// @UseGuards(AuthGuard) // Use your actual auth guard
+@UseGuards(AuthGuard, PermissionsGuard)
 export class SkillAssessmentController {
   constructor(private readonly assessmentService: SkillAssessmentService) {}
 
-  /**
-   * Fetches everything needed to render the behavioral assessment table
-   */
   @Get('sheet')
   async getSheet(
     @Query('resultSheetId', ParseIntPipe) resultSheetId: number,
@@ -31,9 +30,6 @@ export class SkillAssessmentController {
     );
   }
 
-  /**
-   * Saves or Updates scores for multiple students/items at once
-   */
   @Post('save-bulk')
   async saveBulk(@Body() dto: BulkSkillAssessmentDto) {
     return this.assessmentService.recordSkills(dto);
