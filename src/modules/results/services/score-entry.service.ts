@@ -59,8 +59,6 @@ export class ScoreEntryService {
     );
   }
 
-  // results/services/score-entry.service.ts
-
   async getScoreSheet(
     sessionId: number,
     classArmId: number,

@@ -146,6 +146,7 @@ model School {
   id            Int      @id @default(autoincrement())
   schoolGroupId Int?     @map("school_group_id")
   name          String
+  email        String?   @unique
   slug          String   @unique
   address       String?  @db.Text
   schoolType    String?  @map("school_type")
