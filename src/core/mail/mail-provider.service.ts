@@ -34,7 +34,7 @@ export class MailProviderService {
       const templatePath = path.join(
         process.cwd(),
         baseDir,
-        'modules/mail/views',
+        'core/mail/views',
         `${template}.pug`,
       );
 
