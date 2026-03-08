@@ -6,7 +6,8 @@
     "deleteOutDir": true,
     "builder": "swc",
     "assets": [
-      { "include": "modules/mail/views/*.pug", "watchAssets": true }
-    ]
+      { "include": "core/mail/views/**/*", "outDir": "dist/src/core/mail/views" }
+    ],
+    "watchAssets": true
   }
 }
