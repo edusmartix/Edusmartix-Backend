@@ -60,23 +60,20 @@ export class AuthService {
     };
   }
 
-  async sendOtp(userId: number) {
+  async sendOtp(email: string) {
     // 1. Verify user exists
-    const user = await this.userRepo.findById(userId);
+    const user = await this.userRepo.findByEmail(email);
+
     if (!user) {
       throw new NotFoundException('User not found');
-    }
-
-    // 2. Don't resend if already active
-    if (user.isActive) {
-      throw new BadRequestException('Account is already activated');
     }
 
     // 3. Generate new OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 4. Overwrite existing OTP in Redis (resets the 10-minute timer)
-    await this.cacheService.cacheData(`otp:${user.id}`, otp, 600);
+    const cacheKey = `otp:${user.id}`;
+    await this.cacheService.cacheData(cacheKey, otp, 600);
 
     // 5. Send Email
     await this.mailService.sendOtpEmail(user.email, user, otp);
@@ -84,24 +81,31 @@ export class AuthService {
     return { message: 'A new OTP has been sent to your email.' };
   }
 
-  async verifyOtp(userId: number, otp: string) {
-    // 1. Get OTP from Redis
-    const cachedOtp = await this.cacheService.getCachedData(`otp:${userId}`);
+  async verifyOtp(email: string, otp: string) {
+    const user = await this.userRepo.findByEmail(email);
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    // 1. Get OTP from Redis (Using the exact same key format)
+    const cacheKey = `otp:${user.id}`;
+    const cachedOtp = await this.cacheService.getCachedData(cacheKey);
 
     // 2. Compare values
     if (!cachedOtp || cachedOtp !== otp) {
       throw new BadRequestException('Invalid or expired OTP');
     }
 
-    // 3. Activate User in DB via Repository
-    await this.userRepo.updateStatus(userId, true);
+    // 3. Activate User (only if they weren't already active)
+    if (!user.isActive) {
+      await this.userRepo.updateStatus(user.id, true);
+    }
 
-    // 4. Cleanup Redis (Prevent replay attacks)
-    await this.cacheService.invalidateData(`otp:${userId}`);
+    // 4. Cleanup Redis
+    await this.cacheService.invalidateData(cacheKey);
 
-    return {
-      message: 'Account activated successfully.',
-    };
+    return { message: 'Account verified successfully.' };
   }
 
   /**
@@ -109,7 +113,7 @@ export class AuthService {
    * Domain: edusmartix.com / app.edusmartix.com
    */
   async loginGlobal(email: string, pass: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.userRepo.findByEmail(email);
 
     if (!user || !user.passwordHash || user.role !== 'SCHOOL_OWNER') {
       throw new UnauthorizedException('Invalid credentials.');

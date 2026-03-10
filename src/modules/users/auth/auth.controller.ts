@@ -6,7 +6,6 @@ import {
   // Patch,
   // Param,
   // Delete,
-  ParseIntPipe,
   Req,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -23,13 +22,13 @@ export class AuthController {
   }
 
   @Post('send-otp')
-  async sendOtp(@Body('userId', ParseIntPipe) userId: number) {
-    return await this.authService.sendOtp(userId);
+  async sendOtp(@Body('email') email: string) {
+    return await this.authService.sendOtp(email);
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body() body: { userId: number; otp: string }) {
-    return this.authService.verifyOtp(body.userId, body.otp);
+  async verifyOtp(@Body() body: { email: string; otp: string }) {
+    return this.authService.verifyOtp(body.email, body.otp);
   }
 
   @Post('login')
