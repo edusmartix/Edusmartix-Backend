@@ -75,7 +75,7 @@ export class SchoolService {
       return {
         success: true,
         schoolId: school.id,
-        baseDomain: base,
+        baseDomain: `portal.${base}`,
       };
     });
   }
