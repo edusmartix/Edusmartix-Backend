@@ -66,6 +66,7 @@ export class SchoolService {
       await this.tenantRepo.createMultiple(
         school.id,
         [
+          { domain: base, type: DomainType.SCHOOL_PORTAL },
           { domain: `portal.${base}`, type: DomainType.SCHOOL_PORTAL },
           { domain: `students.${base}`, type: DomainType.STUDENTS },
           { domain: `parents.${base}`, type: DomainType.PARENTS },
