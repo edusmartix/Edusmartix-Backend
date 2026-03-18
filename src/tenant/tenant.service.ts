@@ -38,7 +38,8 @@ export class TenantService {
     // 3. Map to our standard Tenant object
     const tenantData = {
       schoolId: record.schoolId,
-      domainType: record.type,
+      // domainType: record.type,
+      domainType: 'SCHOOL_PORTAL', // For now, we only have one type. This can be expanded in the future.
       branding: {
         name: record.school.name,
         logoUrl: record.school.logoUrl,
