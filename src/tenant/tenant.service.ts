@@ -38,8 +38,7 @@ export class TenantService {
     // 3. Map to our standard Tenant object
     const tenantData = {
       schoolId: record.schoolId,
-      // domainType: record.type,
-      domainType: 'SCHOOL_PORTAL', // For now, we only have one type. This can be expanded in the future.
+      domainType: record.type,
       branding: {
         name: record.school.name,
         logoUrl: record.school.logoUrl,
@@ -66,8 +65,8 @@ export class TenantService {
   ) {
     const sanitizedSlug = slug.toLowerCase().trim();
 
-    // We check the primary one: portal.slug.edusmartix.com
-    const fullDomain = `portal.${sanitizedSlug}${baseSuffix}`;
+    // We check the primary one: portal-slug.edusmartix.com
+    const fullDomain = `portal-${sanitizedSlug}${baseSuffix}`;
     const taken = await this.repo.exists(fullDomain);
 
     return {

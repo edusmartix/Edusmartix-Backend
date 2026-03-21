@@ -192,7 +192,7 @@ model SchoolGroup {
 model SchoolDomain {
   id          String     @id @default(uuid())
   schoolId    Int        @map("school_id")
-  domain      String     @unique // e.g., portal.greensprings.edu.ng
+  domain      String     @unique // e.g., portal-greensprings.edu.ng
   type        DomainType @default(SCHOOL_PORTAL)
   isPrimary   Boolean    @default(false) @map("is_primary")
   isVerified  Boolean    @default(false) @map("is_verified")

@@ -19,7 +19,7 @@ export class SchoolService {
     const base = `${dto.slug}${dto.suffix || '.edusmartix.com'}`;
 
     // 1. Pre-check if domain is taken before starting transaction
-    const isTaken = await this.tenantRepo.exists(`portal.${base}`);
+    const isTaken = await this.tenantRepo.exists(`portal-${base}`);
     if (isTaken) {
       throw new ConflictException('This school domain is already taken');
     }
@@ -66,17 +66,16 @@ export class SchoolService {
       await this.tenantRepo.createMultiple(
         school.id,
         [
-          { domain: base, type: DomainType.SCHOOL_PORTAL },
-          { domain: `portal.${base}`, type: DomainType.SCHOOL_PORTAL },
-          { domain: `students.${base}`, type: DomainType.STUDENTS },
-          { domain: `parents.${base}`, type: DomainType.PARENTS },
+          { domain: `portal-${base}`, type: DomainType.SCHOOL_PORTAL },
+          { domain: `student-${base}`, type: DomainType.STUDENTS },
+          { domain: `parent-${base}`, type: DomainType.PARENTS },
         ],
         tx,
       );
       return {
         success: true,
         schoolId: school.id,
-        baseDomain: `portal.${base}`,
+        baseDomain: `portal-${base}`,
       };
     });
   }
