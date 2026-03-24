@@ -27,21 +27,28 @@ async function bootstrap() {
   );
 
   // 4. CORS Configuration
-  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-
   app.enableCors({
     origin: (origin, callback) => {
-      // Logic: Allow if no origin (server-to-server) or if in our whitelist
-      if (!origin || allowedOrigins.includes(origin)) {
+      const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+
+      // Check for exact match (localhost, main domain)
+      const isWhitelisted = !origin || allowedOrigins.includes(origin);
+
+      // Check for subdomain match (*.edusmartix.com)
+      const isSubdomain =
+        origin &&
+        (origin.endsWith('.edusmartix.com') ||
+          origin.endsWith('.edusmartix.com/')); // handle trailing slashes
+
+      if (isWhitelisted || isSubdomain) {
         callback(null, true);
       } else {
-        // Helpful for debugging: tells you which origin was blocked
-        console.log('Blocked by CORS:', origin);
+        console.log('🚫 Blocked by CORS:', origin);
         callback(new Error('Not allowed by CORS policy'));
       }
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
+    credentials: true, // Required because you're now using cookies for the Token!
   });
 
   const port = process.env.PORT ?? 3000;
