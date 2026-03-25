@@ -125,4 +125,60 @@ export class UserRepository {
       create: data,
     });
   }
+
+  // --- STAFF METHODS ---
+
+  async findAllStaff(schoolId: number) {
+    return this.prisma.staffProfile.findMany({
+      where: { schoolId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        role: true, // This is the StaffRole (ADMIN, TEACHER, etc.)
+        userId: true,
+        user: { select: { email: true, isActive: true } },
+      },
+      orderBy: { role: 'asc' },
+    });
+  }
+
+  async findStaffById(staffId: number) {
+    return this.prisma.staffProfile.findUnique({
+      where: { id: staffId },
+      include: { user: { select: { email: true, isActive: true } } },
+    });
+  }
+
+  // --- STUDENT METHODS ---
+
+  async findAllStudents(schoolId: number) {
+    return this.prisma.student.findMany({
+      where: { schoolId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        admissionNo: true,
+        gender: true,
+        isActive: true,
+        userId: true,
+      },
+      orderBy: { lastName: 'asc' },
+    });
+  }
+
+  async findStudentById(studentId: number) {
+    return this.prisma.student.findUnique({
+      where: { id: studentId },
+      include: {
+        user: { select: { email: true } },
+        enrollments: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+          include: { classArm: { include: { classLevel: true } } },
+        },
+      },
+    });
+  }
 }
