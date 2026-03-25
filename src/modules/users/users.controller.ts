@@ -1,4 +1,13 @@
-import { Controller, Post, Body, UseGuards, Req } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  UseGuards,
+  Req,
+  ParseIntPipe,
+  Get,
+  Param,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { AuthGuard } from '../../core/guards/auth.guard';
 import { PermissionsGuard } from '../../core/guards/permissions.guard';
@@ -22,5 +31,29 @@ export class UsersController {
   @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
   async createStudent(@Req() req, @Body() dto: CreateStudentParentDto) {
     return this.userService.createStudentWithParent(req['schoolId'], dto);
+  }
+
+  @Get('staff')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF) // Admins/Owners can see list
+  async getStaffList(@Req() req) {
+    return this.userService.getAllStaffGrouped(req['schoolId']);
+  }
+
+  @Get('staff/:id')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getStaff(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.getStaffDetail(id);
+  }
+
+  @Get('students')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getStudentList(@Req() req) {
+    return this.userService.getAllStudents(req['schoolId']);
+  }
+
+  @Get('students/:id')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getStudent(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.getStudentDetail(id);
   }
 }

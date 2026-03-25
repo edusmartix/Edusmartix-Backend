@@ -135,4 +135,31 @@ export class UsersService {
       };
     });
   }
+
+  async getAllStaffGrouped(schoolId: number) {
+    const staff = await this.userRepo.findAllStaff(schoolId);
+
+    // Grouping logic
+    return staff.reduce(
+      (acc, current) => {
+        const role = current.role;
+        if (!acc[role]) acc[role] = [];
+        acc[role].push(current);
+        return acc;
+      },
+      {} as Record<string, any[]>,
+    );
+  }
+
+  async getAllStudents(schoolId: number) {
+    return this.userRepo.findAllStudents(schoolId);
+  }
+
+  async getStaffDetail(staffId: number) {
+    return this.userRepo.findStaffById(staffId);
+  }
+
+  async getStudentDetail(studentId: number) {
+    return this.userRepo.findStudentById(studentId);
+  }
 }
