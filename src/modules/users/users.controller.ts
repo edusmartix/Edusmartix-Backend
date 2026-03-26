@@ -56,4 +56,10 @@ export class UsersController {
   async getStudent(@Param('id', ParseIntPipe) id: number) {
     return this.userService.getStudentDetail(id);
   }
+
+  @Get('dashboard/stats')
+  @Roles(UserRole.SCHOOL_OWNER, UserRole.STAFF)
+  async getStats(@Req() req) {
+    return this.userService.getDashboardStats(req['schoolId']);
+  }
 }

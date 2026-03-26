@@ -162,4 +162,23 @@ export class UsersService {
   async getStudentDetail(studentId: number) {
     return this.userRepo.findStudentById(studentId);
   }
+
+  async getDashboardStats(schoolId: number) {
+    const stats = await this.userRepo.getSchoolStats(schoolId);
+
+    // Transform the staffRoles array into a more frontend-friendly object if preferred
+    const staffRoleBreakdown = stats.staffRoles.reduce(
+      (acc, curr) => {
+        acc[curr.role] = curr.count;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    return {
+      totalStudents: stats.studentCount,
+      totalStaff: stats.staffCount,
+      staffByRole: staffRoleBreakdown,
+    };
+  }
 }

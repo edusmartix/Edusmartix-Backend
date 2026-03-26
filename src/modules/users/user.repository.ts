@@ -181,4 +181,34 @@ export class UserRepository {
       },
     });
   }
+
+  // --- DASHBOARD / ANALYTICS METHODS ---
+
+  async getSchoolStats(schoolId: number) {
+    // We run these in parallel to keep the response time fast
+    const [studentCount, staffCount, staffRoles] = await Promise.all([
+      this.prisma.student.count({
+        where: { schoolId, isActive: true },
+      }),
+      this.prisma.staffProfile.count({
+        where: { schoolId },
+      }),
+      this.prisma.staffProfile.groupBy({
+        by: ['role'],
+        where: { schoolId },
+        _count: {
+          _all: true,
+        },
+      }),
+    ]);
+
+    return {
+      studentCount,
+      staffCount,
+      staffRoles: staffRoles.map((group) => ({
+        role: group.role,
+        count: group._count._all,
+      })),
+    };
+  }
 }
