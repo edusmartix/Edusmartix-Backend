@@ -1,4 +1,3 @@
-// src/modules/public/newsletter.service.ts
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/core/prisma/prisma.service';
 import { SubscribeNewsletterDto } from './dto/subscribe-newsletter.dto';
