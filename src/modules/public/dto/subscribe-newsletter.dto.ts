@@ -6,9 +6,9 @@ export class SubscribeNewsletterDto {
 
   @IsOptional()
   @IsString()
-  schoolName: string;
+  schoolName?: string;
 
   @IsOptional()
   @IsString()
-  whatsapp: string;
+  whatsapp?: string;
 }
