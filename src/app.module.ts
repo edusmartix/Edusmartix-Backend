@@ -15,6 +15,7 @@ import { BillingModule } from './modules/billing/billing.module';
 import { AuthModule } from './modules/users/auth/auth.module';
 import { MediaModule } from './modules/media/media.module';
 import { ResultsModule } from './modules/results/results.module';
+import { PublicModule } from './modules/public/public.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ResultsModule } from './modules/results/results.module';
     AttendanceModule,
     BillingModule,
     ResultsModule,
+    PublicModule,
   ],
   controllers: [AppController],
   providers: [AppService],

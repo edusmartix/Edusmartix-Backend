@@ -101,6 +101,16 @@ enum ResultSheetStatus {
   ARCHIVED
 }
 
+model NewsletterSubscription {
+  id         Int      @id @default(autoincrement())
+  schoolName String   @map("school_name")
+  email      String
+  whatsapp   String
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("newsletter_subscriptions")
+}
+
 // ==========================
 // AUTHENTICATION & USERS
 // ==========================
